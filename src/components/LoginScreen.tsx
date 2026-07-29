@@ -12,10 +12,10 @@ import {
   Eye, 
   EyeOff, 
   AlertCircle, 
-  Sparkles, 
   UserCheck,
   Building2,
-  KeyRound
+  KeyRound,
+  LockKeyhole
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -42,7 +42,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
     setInfoMessage(null);
 
     if (!identifier || !password) {
-      setError('Por favor ingrese su usuario (Nombre o Correo) y contraseña.');
+      setError('Por favor ingrese su usuario y su contraseña asignada.');
       return;
     }
 
@@ -52,7 +52,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
       setInfoMessage(`¡Bienvenido/a, ${userProfile.displayName}!`);
       setTimeout(() => {
         onLoginSuccess(userProfile);
-      }, 500);
+      }, 400);
     } catch (err: any) {
       setError(err.message || 'Error al validar credenciales.');
     } finally {
@@ -60,24 +60,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
     }
   };
 
-  const handleQuickLogin = async (preset: UserProfile) => {
+  const handleSelectUser = (preset: UserProfile) => {
     setError(null);
     setInfoMessage(null);
     setIdentifier(preset.displayName);
-    setPassword('Unefco2026');
-
-    setLoading(true);
-    try {
-      const userProfile = await authenticateUser(preset.displayName, 'Unefco2026');
-      setInfoMessage(`Acceso concedido para: ${userProfile.displayName}`);
-      setTimeout(() => {
-        onLoginSuccess(userProfile);
-      }, 500);
-    } catch (err: any) {
-      setError(`No se pudo iniciar sesión: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+    setPassword(''); // Force user to enter their secret password
   };
 
   return (
@@ -98,21 +85,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
             SISTEMA DE CRONOGRAMAS
           </h1>
           <p className="text-xs text-slate-300 mt-1 font-medium">
-            Control de Acceso para Técnicos de Seguimiento 2026
+            Control de Acceso Seguro para Técnicos de Seguimiento
           </p>
         </div>
 
         <div className="p-6 sm:p-8">
           
           {error && (
-            <div className="mb-5 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/80 rounded-xl flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300">
+            <div className="mb-5 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/80 rounded-xl flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300 animate-fade-in">
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {infoMessage && (
-            <div className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 rounded-xl flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-300">
+            <div className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 rounded-xl flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-300 animate-fade-in">
               <UserCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
               <span>{infoMessage}</span>
             </div>
@@ -121,7 +108,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-                Usuario (Nombre Completo o Correo)
+                Usuario / Técnico
               </label>
               <div className="relative">
                 <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -130,7 +117,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Ej. JUAN CARLOS CALLE CHAVEZ o tu correo"
+                  placeholder="Escriba su Nombre Completo o seleccione abajo"
                   className="w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
                 />
               </div>
@@ -147,7 +134,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Unefco2026"
+                  placeholder="Ingrese su contraseña personal"
                   className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
                 />
                 <button
@@ -159,8 +146,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                 </button>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 font-medium">
-                <KeyRound className="w-3 h-3 text-indigo-500 shrink-0" />
-                <span>Contraseña general inicial: <strong className="text-indigo-600 dark:text-indigo-400 font-mono">Unefco2026</strong></span>
+                <LockKeyhole className="w-3 h-3 text-indigo-500 shrink-0" />
+                <span>Requiere contraseña individual asignada para ingresar</span>
               </p>
             </div>
 
@@ -170,7 +157,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
               className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 mt-2"
             >
               {loading ? (
-                <span>Validando credenciales...</span>
+                <span>Verificando credenciales...</span>
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
@@ -180,7 +167,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
             </button>
           </form>
 
-          {/* Preset Buttons for Team Members */}
+          {/* User selector list - autofills username only */}
           <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2.5 text-center">
               Seleccionar Usuario Registrado
@@ -190,9 +177,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                 <button
                   key={member.uid}
                   type="button"
-                  onClick={() => handleQuickLogin(member)}
+                  onClick={() => handleSelectUser(member)}
                   disabled={loading}
-                  className="w-full bg-slate-50 hover:bg-indigo-50/80 dark:bg-slate-800/80 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 p-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer group"
+                  className={`w-full bg-slate-50 hover:bg-indigo-50/80 dark:bg-slate-800/80 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-200 border p-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer group ${
+                    identifier === member.displayName 
+                      ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40' 
+                      : 'border-slate-200 dark:border-slate-700/80 hover:border-indigo-300'
+                  }`}
                 >
                   <div className="flex items-center gap-2.5 text-left">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${

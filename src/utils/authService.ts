@@ -36,6 +36,13 @@ export const OFFICIAL_TEAM_PRESETS: UserProfile[] = [
   }
 ];
 
+// Official designated secret passwords per official user
+const OFFICIAL_PASSWORDS: Record<string, string> = {
+  'admin_juan_carlos_calle': 'Fatimex25*',
+  'tecnico_victor_marcelo': 'Unefco@339808',
+  'tecnica_paola_rosa': 'Unefco@4371320'
+};
+
 // Helper to normalize strings for comparison (case & accent insensitive)
 export const normalizeText = (str: string): string => {
   return str
@@ -45,13 +52,7 @@ export const normalizeText = (str: string): string => {
     .trim();
 };
 
-// Check if password matches default patterns (Unefco2026, Unfeco2026, unefco2026, etc.)
-export const isDefaultPasswordMatch = (password: string): boolean => {
-  const norm = normalizeText(password);
-  return norm === 'unefco2026' || norm === 'unfeco2026';
-};
-
-// Get all custom created technicians stored locally + sync with Firestore
+// Get all custom created technicians stored locally
 export const getCustomUsers = (): Record<string, { profile: UserProfile; passwordHash: string }> => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_USERS);
@@ -81,7 +82,7 @@ export const seedDefaultTeamToFirestore = async () => {
       }
     }
   } catch (err) {
-    console.warn('No se pudo sembrar usuarios predeterminados en Firestore (offline o permisos):', err);
+    console.warn('No se pudo sembrar usuarios predeterminados en Firestore:', err);
   }
 };
 
@@ -91,7 +92,6 @@ export const authenticateUser = async (
   inputPassword: string
 ): Promise<UserProfile> => {
   const cleanId = normalizeText(inputIdentifier);
-  const cleanPass = normalizeText(inputPassword);
 
   if (!cleanId || !inputPassword) {
     throw new Error('Ingrese su nombre/correo y contraseña.');
@@ -105,11 +105,13 @@ export const authenticateUser = async (
   });
 
   if (officialMatch) {
-    if (isDefaultPasswordMatch(inputPassword)) {
+    const expectedPassword = OFFICIAL_PASSWORDS[officialMatch.uid];
+    // Exact password verification
+    if (inputPassword === expectedPassword) {
       if (officialMatch.status === 'inactive') {
-        throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador Juan Carlos Calle Chávez.');
+        throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador General.');
       }
-      // Save last login time
+      
       const updatedProfile = { ...officialMatch, lastLogin: new Date().toISOString() };
       try {
         await setDoc(doc(db, 'users', officialMatch.uid), updatedProfile, { merge: true });
@@ -119,11 +121,11 @@ export const authenticateUser = async (
       saveLoggedInUser(updatedProfile);
       return updatedProfile;
     } else {
-      throw new Error('Contraseña incorrecta para el usuario seleccionado. Pruebe con: Unefco2026');
+      throw new Error('Contraseña incorrecta para el usuario ingresado.');
     }
   }
 
-  // 2. Check Custom Local Users
+  // 2. Check Custom Local / Added Users
   const customUsersMap = getCustomUsers();
   const customList = Object.values(customUsersMap);
   const customMatch = customList.find(item => {
@@ -134,7 +136,7 @@ export const authenticateUser = async (
   });
 
   if (customMatch) {
-    if (normalizeText(customMatch.passwordHash) === cleanPass || isDefaultPasswordMatch(inputPassword)) {
+    if (inputPassword === customMatch.passwordHash || inputPassword === 'Unefco2026') {
       if (customMatch.profile.status === 'inactive') {
         throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador Juan Carlos Calle Chávez.');
       }
@@ -142,11 +144,11 @@ export const authenticateUser = async (
       saveLoggedInUser(updatedProfile);
       return updatedProfile;
     } else {
-      throw new Error('Contraseña incorrecta.');
+      throw new Error('Contraseña incorrecta para el técnico seleccionado.');
     }
   }
 
-  // 3. Try checking Firestore database
+  // 3. Fallback check in Firestore
   try {
     const querySnap = await getDocs(collection(db, 'users'));
     let foundProfile: UserProfile | null = null;
@@ -160,7 +162,9 @@ export const authenticateUser = async (
     });
 
     if (foundProfile) {
-      if (isDefaultPasswordMatch(inputPassword)) {
+      const profileUid = (foundProfile as UserProfile).uid;
+      const expectedPass = OFFICIAL_PASSWORDS[profileUid];
+      if (expectedPass && inputPassword === expectedPass) {
         if ((foundProfile as UserProfile).status === 'inactive') {
           throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador.');
         }
@@ -172,7 +176,7 @@ export const authenticateUser = async (
     console.warn('Firestore fallback fetch failed:', err);
   }
 
-  throw new Error('Usuario o contraseña no encontrados. Verifique sus datos.');
+  throw new Error('Usuario o contraseña no encontrados. Verifique sus credenciales.');
 };
 
 // Session persistence
