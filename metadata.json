@@ -1,0 +1,6 @@
+{
+  "name": "Sistema de Cronogramas Académicos UNEFCO",
+  "description": "Sistema oficial de gestión de cronogramas, oferta formativa y generación de calendarios académicos con trazabilidad para la UNEFCO La Paz.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

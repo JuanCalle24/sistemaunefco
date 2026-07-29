@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer utilities {
+  .font-display {
+    font-family: 'Hanken Grotesk', sans-serif;
+  }
+  .font-sans {
+    font-family: 'Inter', sans-serif;
+  }
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom scrollbars for timeline */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.gantt-grid-light {
+  background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px);
+  background-size: 24px 100%;
+}
+
+.gantt-grid-dark {
+  background-image: linear-gradient(to right, #1e293b 1px, transparent 1px);
+  background-size: 24px 100%;
+}
+
