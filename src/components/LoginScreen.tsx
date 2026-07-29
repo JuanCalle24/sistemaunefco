@@ -75,13 +75,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
         
         {/* Header Header */}
         <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white text-center relative border-b border-indigo-900/50">
-          <div className="w-16 h-16 bg-slate-900 border border-indigo-400/40 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg overflow-hidden p-1">
-            <img 
-              src="/src/assets/images/unefco_favicon_1785350470812.jpg" 
-              alt="UNEFCO Logo" 
-              referrerPolicy="no-referrer" 
-              className="w-full h-full object-cover rounded-xl"
-            />
+          <div className="w-14 h-14 bg-indigo-600/20 border border-indigo-400/30 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner backdrop-blur-xs">
+            <Building2 className="w-8 h-8 text-indigo-400" />
           </div>
           <span className="text-[11px] font-bold tracking-widest text-indigo-300 uppercase block mb-1">
             UNEFCO LA PAZ
