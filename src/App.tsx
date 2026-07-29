@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from './lib/firebase';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Timeline } from './components/Timeline';
@@ -9,6 +12,8 @@ import { HistoryModal } from './components/HistoryModal';
 import { ShareModal } from './components/ShareModal';
 import { AlertsBanner } from './components/AlertsBanner';
 import { ScheduleFilterBar, StatusFilterType } from './components/ScheduleFilterBar';
+import { LoginScreen } from './components/LoginScreen';
+import { UserManagementModal } from './components/UserManagementModal';
 import { generateCourseAlerts, getAlertSeverity } from './utils/alertUtils';
 import { downloadICSFile, getWhatsAppShareURL, getEmailShareData } from './utils/calendarAndSharing';
 import { OFERTA_FORMATIVA_UNEFCO_2026 } from './data/ofertaFormativa';
@@ -16,11 +21,15 @@ import {
   SlotAsignacion, 
   ProgramacionResultado, 
   Modalidad, 
-  ManualCourseInput 
+  ManualCourseInput,
+  UserProfile 
 } from './types';
 import { calculateSchedulerAuto, calculateSchedulerManual } from './utils/scheduler';
 import { generatePDFDocument } from './utils/pdfGenerator';
-import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw } from 'lucide-react';
+import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
+
+
+import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser } from './utils/authService';
 
 interface MatrixRowItem {
   id: string;
@@ -31,6 +40,11 @@ interface MatrixRowItem {
 }
 
 export default function App() {
+  // Auth State
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [isUserMgmtOpen, setIsUserMgmtOpen] = useState<boolean>(false);
+
   // Theme & Views
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('unefco_dark_mode') === 'true';
@@ -38,6 +52,61 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'cronograma' | 'dashboard'>('cronograma');
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
+
+  // User Session Listener
+  useEffect(() => {
+    // Check saved local user session first
+    const savedUser = getLoggedInUser();
+    if (savedUser && savedUser.status === 'active') {
+      setCurrentUser(savedUser);
+      if (savedUser.displayName) {
+        setTecnico(savedUser.displayName);
+      }
+      setAuthLoading(false);
+    } else {
+      clearLoggedInUser();
+      setAuthLoading(false);
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            const profile = { uid: firebaseUser.uid, ...snap.data() } as UserProfile;
+            if (profile.status === 'inactive') {
+              alert('Su cuenta ha sido desactivada por el Administrador Juan Carlos Calle Chávez.');
+              await signOut(auth);
+              clearLoggedInUser();
+              setCurrentUser(null);
+            } else {
+              setCurrentUser(profile);
+              saveLoggedInUser(profile);
+              if (profile.displayName) {
+                setTecnico(profile.displayName);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Syncing auth state warning:', err);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      // Ignore
+    }
+    clearLoggedInUser();
+    setCurrentUser(null);
+  };
+
 
   // History State
   const [history, setHistory] = useState<ProgramacionResultado[]>(() => {
@@ -483,6 +552,33 @@ export default function App() {
     handleResetFilters();
   };
 
+  if (authLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-4 transition-colors ${
+        isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
+      }`}>
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            Cargando Seguridad UNEFCO...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <LoginScreen
+        onLoginSuccess={(u) => {
+          setCurrentUser(u);
+          setTecnico(u.displayName);
+        }}
+        isDarkMode={isDarkMode}
+      />
+    );
+  }
+
   return (
     <div className={`min-h-screen flex flex-col font-sans antialiased transition-colors ${isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       <Header
@@ -495,7 +591,11 @@ export default function App() {
         onTabChange={setActiveTab}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenShare={() => setIsShareOpen(true)}
+        currentUser={currentUser}
+        onOpenUserManagement={() => setIsUserMgmtOpen(true)}
+        onSignOut={handleSignOut}
       />
+
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Sidebar Controls */}
@@ -811,8 +911,18 @@ export default function App() {
           setHistory(next);
         }}
       />
+
+      {/* User & Technician Management Modal */}
+      {currentUser && (
+        <UserManagementModal
+          isOpen={isUserMgmtOpen}
+          onClose={() => setIsUserMgmtOpen(false)}
+          currentUser={currentUser}
+        />
+      )}
     </div>
   );
 }
+
 
 

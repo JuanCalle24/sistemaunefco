@@ -1,0 +1,32 @@
+{
+  "entities": {
+    "users": {
+      "title": "Usuarios y Técnicos",
+      "description": "Perfiles de usuarios del sistema UNEFCO (Administrador y Técnicos de Seguimiento)",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "tecnico"] },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "cargo": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "displayName", "role", "status"]
+    },
+    "programaciones": {
+      "title": "Programaciones de Cronogramas",
+      "description": "Cronogramas de seguimiento generados y respaldados en la nube",
+      "properties": {
+        "facilitador": { "type": "string" },
+        "tecnico": { "type": "string" },
+        "createdById": { "type": "string" },
+        "createdByEmail": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "daysUsed": { "type": "number" },
+        "modo": { "type": "string" },
+        "hashSeguridad": { "type": "string" }
+      },
+      "required": ["facilitador", "tecnico", "createdById", "createdAt"]
+    }
+  }
+}

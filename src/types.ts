@@ -78,3 +78,19 @@ export interface FeriadoInfo {
   descripcion: string;
   esFijo: boolean;
 }
+
+export type UserRole = 'admin' | 'tecnico';
+export type UserStatus = 'active' | 'inactive';
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  status: UserStatus;
+  cargo?: string;
+  departamento?: string;
+  createdAt?: string;
+  lastLogin?: string;
+}
+

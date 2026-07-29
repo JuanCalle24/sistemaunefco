@@ -8,9 +8,14 @@ import {
   LayoutDashboard, 
   CalendarDays, 
   History,
-  Send
+  Send,
+  Users,
+  LogOut,
+  ShieldCheck,
+  User
 } from 'lucide-react';
 import { DIAS_SEMANA_COMPLETOS } from '../utils/textUtils';
+import { UserProfile } from '../types';
 
 interface HeaderProps {
   onGeneratePDF: () => void;
@@ -22,7 +27,11 @@ interface HeaderProps {
   onTabChange: (tab: 'cronograma' | 'dashboard') => void;
   onOpenHistory: () => void;
   onOpenShare?: () => void;
+  currentUser?: UserProfile | null;
+  onOpenUserManagement?: () => void;
+  onSignOut?: () => void;
 }
+
 
 export const Header: React.FC<HeaderProps> = ({
   onGeneratePDF,
@@ -33,7 +42,10 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   onTabChange,
   onOpenHistory,
-  onOpenShare
+  onOpenShare,
+  currentUser,
+  onOpenUserManagement,
+  onSignOut
 }) => {
   const [now, setNow] = useState(new Date());
 
@@ -91,7 +103,55 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-2 sm:mt-0">
+        {/* User Info & Role Badge */}
+        {currentUser && (
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md">
+            <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+              {currentUser.displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="text-left hidden lg:block">
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight flex items-center gap-1">
+                <span>{currentUser.displayName}</span>
+                {currentUser.role === 'admin' ? (
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" title="Administrador" />
+                ) : (
+                  <User className="w-3.5 h-3.5 text-indigo-500" title="Técnico de Seguimiento" />
+                )}
+              </div>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">
+                {currentUser.role === 'admin' ? 'Administrador General' : 'Técnico de Seguimiento'}
+              </span>
+            </div>
+
+            {/* Admin Users Management Button */}
+            {currentUser.role === 'admin' && onOpenUserManagement && (
+              <button
+                type="button"
+                onClick={onOpenUserManagement}
+                className="ml-1 p-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 dark:bg-purple-950/80 dark:hover:bg-purple-900/80 dark:text-purple-300 border border-purple-300 dark:border-purple-800 rounded-md text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                title="Gestión de Técnicos y Usuarios"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline text-[11px]">Técnicos</span>
+              </button>
+            )}
+
+            {/* Sign Out Button */}
+            {onSignOut && (
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="p-1.5 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md transition-colors cursor-pointer"
+                title="Cerrar Sesión"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Mobile View Switcher */}
+
         <div className="flex xl:hidden items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xs border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => onTabChange('cronograma')}
