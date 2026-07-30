@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
-  UserCheck, 
-  Network, 
   Plus, 
   Trash2, 
   Calendar, 
@@ -12,11 +11,27 @@ import {
   AlertTriangle,
   Zap,
   CalendarDays,
-  RotateCcw
+  LayoutDashboard,
+  History,
+  Send,
+  FileDown,
+  Users,
+  RotateCcw,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Sliders,
+  Sparkles,
+  BookOpen,
+  ShieldCheck,
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
 import { OFERTA_FORMATIVA_UNEFCO_2026 } from '../data/ofertaFormativa';
 import { DatePickerPopup } from './DatePickerPopup';
-import { Modalidad } from '../types';
+import { Modalidad, UserProfile } from '../types';
 import { capitalizeName } from '../utils/textUtils';
 
 interface MatrixRowItem {
@@ -26,6 +41,8 @@ interface MatrixRowItem {
   lugar: string;
   modalidad: Modalidad;
 }
+
+export type MainViewOption = 'programar' | 'eventos' | 'dashboard' | 'historial';
 
 interface SidebarProps {
   modo: 'automatico' | 'manual';
@@ -57,6 +74,17 @@ interface SidebarProps {
   onClearAll?: () => void;
   errorMessage?: string | null;
   warnings?: string[];
+
+  // Dynamic View & Grouped Navigation
+  selectedView: MainViewOption;
+  onSelectView: (view: MainViewOption) => void;
+  onOpenHistory?: () => void;
+  onOpenShare?: () => void;
+  onGeneratePDF?: () => void;
+  pdfDisabled?: boolean;
+  onOpenUserManagement?: () => void;
+  currentUser?: UserProfile | null;
+  hasResult?: boolean;
 }
 
 export const GRADOS_ACADEMICOS = [
@@ -110,8 +138,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenAdminModal,
   onClearAll,
   errorMessage,
-  warnings = []
+  warnings = [],
+  selectedView,
+  onSelectView,
+  onOpenHistory,
+  onOpenShare,
+  onGeneratePDF,
+  pdfDisabled = true,
+  onOpenUserManagement,
+  currentUser,
+  hasResult = false
 }) => {
+  const isAdmin = currentUser?.role === 'admin';
+
+  // State for Accordion Menu sections
+  const [openProgramacion, setOpenProgramacion] = useState(true);
+
+  // Sidebar collapse/expand state
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    const saved = localStorage.getItem('unefco_sidebar_collapsed');
+    return saved !== null ? saved === 'true' : false;
+  });
+
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('unefco_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
   const { grado: currentGrado, nombre: currentNombre } = parseDegreeAndName(facilitador);
 
   const handleGradoSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -127,331 +183,351 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-full lg:w-80 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full overflow-y-auto shrink-0 transition-colors">
-      {/* Sidebar Header */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-indigo-600 rounded flex items-center justify-center text-white">
-              <Settings2 className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-widest">
-                Parámetros de Fase
-              </h2>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Gestión Académica</p>
-            </div>
-          </div>
-          <button
-            onClick={onOpenAdminModal}
-            title="Gestión de Personal y Feriados"
-            className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 uppercase tracking-wider hover:bg-indigo-50 dark:hover:bg-indigo-950/60 px-2 py-1 rounded-sm transition-colors cursor-pointer"
-          >
-            Config
-          </button>
-        </div>
-
-        {/* Phase Limit Card from Stitch Design */}
-        <div className="bg-indigo-50/70 dark:bg-slate-800/80 p-3 rounded-md mt-3 border border-indigo-100 dark:border-slate-700/80 border-dashed">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Límite Fase</span>
-            <span className="font-mono text-xs font-bold text-indigo-700 dark:text-indigo-300">100 Días</span>
-          </div>
-          <div className="w-full bg-slate-200 dark:bg-slate-900 rounded-full h-1.5 overflow-hidden">
-            <div className="bg-indigo-600 dark:bg-indigo-400 h-full rounded-full transition-all duration-300" style={{ width: totalCiclosCount > 0 ? `${Math.min(totalCiclosCount * 20, 100)}%` : '20%' }}></div>
-          </div>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1 font-medium">
-            <Workflow className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-            <span>Marco de Trazabilidad UNEFCO</span>
-          </p>
-        </div>
-      </div>
-
-      <div className="p-5 space-y-6 flex-1">
-        {/* Mode Selector Toggle */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest block">
-            Modo de Programación
-          </label>
-          <div className="bg-slate-200 dark:bg-slate-800 p-1 rounded-sm flex gap-1">
-            <button
-              type="button"
-              onClick={() => onToggleModo('automatico')}
-              className={`flex-1 py-1.5 px-2 rounded-sm text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                modo === 'automatico'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 border-l-2 border-indigo-600 dark:border-indigo-500 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>Auto</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onToggleModo('manual')}
-              className={`flex-1 py-1.5 px-2 rounded-sm text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                modo === 'manual'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 border-l-2 border-indigo-600 dark:border-indigo-500 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <Edit3 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span>Manual</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Section 1: Personal (Docente & Coordinador/Técnico) */}
-        <div className="space-y-3 bg-white dark:bg-slate-900 p-4 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">
-            <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span>Personal Asignado</span>
-          </div>
-
-          {/* Docente / Facilitador */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-              Docente / Facilitador <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-1.5 w-full">
-              <select
-                value={currentGrado}
-                onChange={handleGradoSelectChange}
-                className="w-20 shrink-0 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-indigo-600 dark:focus:border-indigo-500 rounded-sm px-1.5 py-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 focus:outline-none transition-colors cursor-pointer"
-                title="Grado Académico"
-              >
-                {GRADOS_ACADEMICOS.map((g) => (
-                  <option key={g} value={g} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                    {g}
-                  </option>
-                ))}
-                <option value="" className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400">
-                  (Sin)
-                </option>
-              </select>
-              <input
-                type="text"
-                placeholder="Ej: Juan Carlos Calle"
-                value={currentNombre}
-                onChange={handleNombreInputChange}
-                className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-indigo-600 dark:focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 rounded-sm px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-semibold focus:outline-none transition-colors"
-              />
-            </div>
-            {/* Quick select from saved docentes */}
-            {savedDocentes.length > 0 && (
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {savedDocentes.slice(0, 4).map((doc, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onChangeFacilitador(doc)}
-                    className="text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:text-indigo-700 dark:hover:text-indigo-300 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-2xs font-bold uppercase transition-colors cursor-pointer truncate max-w-[110px]"
-                    title={doc}
-                  >
-                    {doc}
-                  </button>
-                ))}
+    <aside className="relative z-30 flex shrink-0 h-full">
+      {/* ------------------------------------------------------------- */}
+      {/* SIE UNEFCO STYLE LEFT NAVIGATION MENU                          */}
+      {/* ------------------------------------------------------------- */}
+      <div 
+        className={`bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full transition-all duration-300 z-40 select-none shadow-xs ${
+          isCollapsed ? 'w-16' : 'w-72 md:w-80'
+        }`}
+      >
+        {/* Header User Profile Card (SIE Style) */}
+        <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
+          {!isCollapsed ? (
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">
+                {currentUser?.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U'}
               </div>
-            )}
-          </div>
-
-          {/* Técnico de Seguimiento / Coordinadores */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-              Técnico de Seguimiento
-            </label>
-            <select
-              value={tecnico}
-              onChange={e => onChangeTecnico(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-indigo-600 dark:focus:border-indigo-500 rounded-sm px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-semibold focus:outline-none transition-colors cursor-pointer"
-            >
-              {savedCoordinadores.map((coord, idx) => (
-                <option key={idx} value={coord} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                  {coord}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Section 2: Matrix of Assignments (Slots) */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
-              Ciclos Formativos ({totalCiclosCount}/5)
-            </span>
-            <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-2xs">
-              MÁX 5
-            </span>
-          </div>
-
-          {/* Matrix Rows */}
-          <div className="space-y-2.5">
-            {matrixRows.map((row, rowIdx) => {
-              return (
-                <div
-                  key={row.id}
-                  className="bg-white dark:bg-slate-900 border-l-4 border-l-indigo-600 dark:border-l-indigo-500 border-y border-r border-slate-200 dark:border-slate-800 p-3 space-y-2 shadow-2xs"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
-                      Asignación #{rowIdx + 1}
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider truncate flex items-center gap-1">
+                  <span>Sede La Paz</span>
+                  {isAdmin && (
+                    <span className="text-[9px] bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-1 rounded font-black">
+                      ADMIN
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => onRemoveMatrixRow(row.id)}
-                      className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 p-1 transition-colors cursor-pointer"
-                      title="Eliminar asignación"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Cycle Select */}
-                  <select
-                    value={row.cicloIndex}
-                    onChange={e => {
-                      const idx = parseInt(e.target.value, 10);
-                      onUpdateMatrixRow(row.id, 'cicloIndex', idx);
-                      const newOferta = OFERTA_FORMATIVA_UNEFCO_2026[idx];
-                      if (row.lugar === 'SEDE CENTRAL - LA PAZ' || row.lugar === 'SEDE VIACHA' || row.lugar === 'Sede Central - La Paz' || row.lugar === 'Sede Viacha' || !row.lugar) {
-                        const sug = newOferta.cat === 'TACFI' ? 'SEDE CENTRAL - LA PAZ' : 'SEDE VIACHA';
-                        onUpdateMatrixRow(row.id, 'lugar', sug);
-                      }
-                    }}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm px-2 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-semibold focus:outline-none focus:border-indigo-600 dark:focus:border-indigo-500 cursor-pointer"
-                  >
-                    {OFERTA_FORMATIVA_UNEFCO_2026.map((c, idx) => (
-                      <option key={c.id} value={idx} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                        {c.id} | {c.cat === 'TACFI' ? '30d Est.' : '15d Prof.'} - {c.nombre}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Location & Modality */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <label className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase block mb-0.5">
-                        Lugar
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="EJ: SEDE LA PAZ"
-                        value={row.lugar}
-                        onChange={e => onUpdateMatrixRow(row.id, 'lugar', e.target.value.toUpperCase())}
-                        className="w-full uppercase bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm px-2 py-1 text-xs text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:border-indigo-600 dark:focus:border-indigo-500 font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase block mb-0.5">
-                        Modalidad
-                      </label>
-                      <select
-                        value={row.modalidad}
-                        onChange={e =>
-                          onUpdateMatrixRow(row.id, 'modalidad', e.target.value as Modalidad)
-                        }
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm px-2 py-1 text-xs text-slate-900 dark:text-slate-100 font-semibold focus:outline-none focus:border-indigo-600 dark:focus:border-indigo-500 cursor-pointer"
-                      >
-                        <option value="Presencial" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Presencial</option>
-                        <option value="Semipresencial" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Semipresencial</option>
-                        <option value="Virtual" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Virtual</option>
-                      </select>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+                <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                  {currentUser?.displayName || 'Usuario UNEFCO'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-sm mx-auto shadow-xs">
+              {currentUser?.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
 
-          {/* Add Row Button */}
-          {totalCiclosCount < 5 && (
+          {!isCollapsed && (
             <button
-              type="button"
-              onClick={onAddMatrixRow}
-              className="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              onClick={toggleCollapse}
+              className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              title="Colapsar Menú"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Añadir Ciclo Formativo</span>
+              <PanelLeftClose className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Section 3: Contract Start Date */}
-        <div className="bg-white dark:bg-slate-900 p-4 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2">
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-100 dark:border-slate-800">
-            <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span>Inicio de Contrato</span>
-          </div>
+        {/* Scrollable Navigation Area */}
+        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+          {/* Collapsed Rail Icons View */}
+          {isCollapsed ? (
+            <div className="flex flex-col items-center gap-2.5">
+              <button
+                onClick={toggleCollapse}
+                className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 hover:text-white dark:hover:text-white flex items-center justify-center transition-colors mb-2 cursor-pointer shadow-2xs"
+                title="Expandir Menú de Opciones"
+              >
+                <PanelLeftOpen className="w-5 h-5" />
+              </button>
 
-          <DatePickerPopup
-            selectedDate={selectedDate}
-            onSelectDate={onSelectDate}
-            feriadosCustom={feriadosCustom}
-          />
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-            Ventana máxima fija: 100 días calendario.
-          </p>
-        </div>
+              <button
+                onClick={() => {
+                  onSelectView('programar');
+                  setIsCollapsed(false);
+                }}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                  selectedView === 'programar'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                    : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Parámetros de Programación"
+              >
+                <CalendarDays className="w-5 h-5" />
+                {totalCiclosCount > 0 && (
+                  <span className="absolute -top-1 -right-1 text-[9px] font-black bg-indigo-500 text-white w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-slate-900">
+                    {totalCiclosCount}
+                  </span>
+                )}
+              </button>
 
-        {/* Error / Warning Alert */}
-        {errorMessage && (
-          <div className="bg-red-50 dark:bg-red-950/50 border-l-4 border-red-600 text-red-800 dark:text-red-300 p-3 text-xs space-y-1">
-            <div className="flex items-center gap-1.5 font-bold uppercase text-[10px] tracking-wider">
-              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-              <span>Restricción Detectada</span>
+              <button
+                onClick={() => {
+                  onSelectView('eventos');
+                }}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                  selectedView === 'eventos'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                    : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Eventos / Cursos Programados"
+              >
+                <BookOpen className="w-5 h-5" />
+                {hasResult && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white dark:border-slate-900" />
+                )}
+              </button>
+
+              <button
+                onClick={() => onSelectView('dashboard')}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                  selectedView === 'dashboard'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                    : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Dashboard de Métricas"
+              >
+                <LayoutDashboard className="w-5 h-5" />
+              </button>
+
+              {onOpenHistory && (
+                <button
+                  onClick={onOpenHistory}
+                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-950 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center justify-center transition-all cursor-pointer"
+                  title="Historial de Cronogramas"
+                >
+                  <History className="w-5 h-5" />
+                </button>
+              )}
+
+              {onOpenShare && (
+                <button
+                  onClick={onOpenShare}
+                  disabled={pdfDisabled}
+                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/70 text-emerald-600 dark:text-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-emerald-100 dark:hover:bg-emerald-950 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center justify-center transition-all cursor-pointer"
+                  title="Notificar por WhatsApp / Email"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              )}
+
+              {onGeneratePDF && (
+                <button
+                  onClick={onGeneratePDF}
+                  disabled={pdfDisabled}
+                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/70 text-indigo-600 dark:text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-indigo-100 dark:hover:bg-indigo-950 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center justify-center transition-all cursor-pointer"
+                  title="Exportar PDF"
+                >
+                  <FileDown className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* ADMIN ONLY CONFIG BUTTONS IN RAIL */}
+              {isAdmin && onOpenUserManagement && (
+                <button
+                  onClick={onOpenUserManagement}
+                  className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900 border border-purple-300 dark:border-purple-800/50 flex items-center justify-center transition-all cursor-pointer"
+                  title="Gestión de Técnicos (Solo Admin)"
+                >
+                  <Users className="w-5 h-5" />
+                </button>
+              )}
+
+              {isAdmin && (
+                <button
+                  onClick={onOpenAdminModal}
+                  className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900 border border-purple-300 dark:border-purple-800/50 flex items-center justify-center transition-all cursor-pointer"
+                  title="Configuración de Feriados y Oferta (Solo Admin)"
+                >
+                  <Settings2 className="w-5 h-5" />
+                </button>
+              )}
             </div>
-            <p className="text-[11px] leading-relaxed">{errorMessage}</p>
-          </div>
-        )}
-
-        {warnings.length > 0 && (
-          <div className="bg-amber-50 dark:bg-amber-950/50 border-l-4 border-amber-500 text-amber-900 dark:text-amber-200 p-3 text-xs space-y-1">
-            <div className="flex items-center gap-1.5 font-bold uppercase text-[10px] tracking-wider">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Observaciones Modo Manual</span>
-            </div>
-            <ul className="list-disc list-inside text-[10px] space-y-0.5">
-              {warnings.map((w, idx) => (
-                <li key={idx}>{w}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* Sidebar Footer */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mt-auto space-y-2">
-        <button
-          type="button"
-          onClick={onGenerar}
-          disabled={!isValid || isGenerating}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs uppercase tracking-widest py-3 px-4 rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-        >
-          {isGenerating ? (
-            <span>Calculando...</span>
           ) : (
+            /* Expanded SIE UNEFCO Style Navigation Menu */
             <>
-              <CalendarDays className="w-4 h-4 text-emerald-400" />
-              <span>Generar Cronograma</span>
+              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 pt-2 pb-1">
+                Menú de Opciones
+              </div>
+
+              {/* ACCORDION 1: PROGRAMACIÓN */}
+              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
+                <button
+                  onClick={() => setOpenProgramacion(!openProgramacion)}
+                  className="w-full px-3 py-2.5 flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Programación</span>
+                  </div>
+                  {openProgramacion ? (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  )}
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {openProgramacion && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="bg-white dark:bg-slate-950/60 border-t border-slate-200 dark:border-slate-800/60 divide-y divide-slate-100 dark:divide-slate-800/40"
+                    >
+                      {/* Sub-item: Parámetros de Programación */}
+                      <button
+                        onClick={() => onSelectView('programar')}
+                        className={`w-full px-4 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                          selectedView === 'programar'
+                            ? 'bg-indigo-50 dark:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 border-l-2 border-indigo-600 dark:border-indigo-500 font-bold'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Sliders className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                          <span>Generar Cronograma</span>
+                        </div>
+                        {totalCiclosCount > 0 && (
+                          <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.2 rounded border border-indigo-200 dark:border-indigo-500/40">
+                            {totalCiclosCount} Ciclos
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Sub-item: Eventos / Cursos Programados */}
+                      <button
+                        onClick={() => onSelectView('eventos')}
+                        className={`w-full px-4 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                          selectedView === 'eventos'
+                            ? 'bg-indigo-50 dark:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 border-l-2 border-indigo-600 dark:border-indigo-500 font-bold'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                          <span>Cursos Programados</span>
+                        </div>
+                        {hasResult && (
+                          <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-200 dark:border-emerald-500/30 uppercase">
+                            Activo
+                          </span>
+                        )}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* MENU ITEM 2: DASHBOARD & METRICS */}
+              <button
+                onClick={() => onSelectView('dashboard')}
+                className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                  selectedView === 'dashboard'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <LayoutDashboard className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Dashboard & Métricas</span>
+                </div>
+              </button>
+
+              {/* MENU ITEM 3: HISTORIAL DE CRONOGRAMAS */}
+              {onOpenHistory && (
+                <button
+                  onClick={onOpenHistory}
+                  className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <History className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Historial de Cronogramas</span>
+                  </div>
+                </button>
+              )}
+
+              {/* MENU ITEM 4: NOTIFICAR / COMPARTIR */}
+              {onOpenShare && (
+                <button
+                  onClick={onOpenShare}
+                  disabled={pdfDisabled}
+                  className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Send className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Notificar & Compartir</span>
+                  </div>
+                </button>
+              )}
+
+              {/* MENU ITEM 5: EXPORTAR INFORME PDF */}
+              {onGeneratePDF && (
+                <button
+                  onClick={onGeneratePDF}
+                  disabled={pdfDisabled}
+                  className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <FileDown className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Exportar Informe PDF</span>
+                  </div>
+                </button>
+              )}
+
+              <div className="pt-3 pb-1 border-t border-slate-200 dark:border-slate-800/80 my-2">
+                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-1">
+                  Administración de Sistema
+                </div>
+
+                {/* MENU ITEM 6: GESTIÓN DE TÉCNICOS (ADMIN ONLY) */}
+                {isAdmin ? (
+                  onOpenUserManagement && (
+                    <button
+                      onClick={onOpenUserManagement}
+                      className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800/40 flex items-center justify-between transition-colors cursor-pointer my-1"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        <span>Gestión de Técnicos</span>
+                      </div>
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    </button>
+                  )
+                ) : (
+                  <div className="px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-2 font-medium">
+                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0" />
+                    <span>Técnicos (Acceso Limitado)</span>
+                  </div>
+                )}
+
+                {/* MENU ITEM 7: CONFIGURACIÓN FERIADOS Y OFERTA (ADMIN ONLY) */}
+                {isAdmin ? (
+                  <button
+                    onClick={onOpenAdminModal}
+                    className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 flex items-center justify-between transition-colors cursor-pointer my-1"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Settings2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>Feriados & Oferta Académica</span>
+                    </div>
+                    <span className="text-[9px] font-bold bg-purple-100 dark:bg-purple-900/80 text-purple-800 dark:text-purple-300 px-1.5 py-0.2 rounded uppercase">
+                      Admin
+                    </span>
+                  </button>
+                ) : (
+                  <div className="px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-2 font-medium" title="Solo disponible para Administradores">
+                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0" />
+                    <span>Config. Feriados (Solo Admin)</span>
+                  </div>
+                )}
+              </div>
             </>
           )}
-        </button>
-
-        {onClearAll && (
-          <button
-            type="button"
-            onClick={onClearAll}
-            title="Limpiar campos y reiniciar programación"
-            className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 hover:border-red-300 dark:hover:border-red-800 font-bold text-xs uppercase tracking-wider py-2 px-3 rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Limpiar / Reiniciar</span>
-          </button>
-        )}
+        </div>
       </div>
     </aside>
   );
 };
-

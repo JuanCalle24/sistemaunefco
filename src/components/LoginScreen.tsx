@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile } from '../types';
 import { 
   OFFICIAL_TEAM_PRESETS, 
@@ -75,9 +76,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
         
         {/* Header Header */}
         <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white text-center relative border-b border-indigo-900/50">
-          <div className="w-14 h-14 bg-indigo-600/20 border border-indigo-400/30 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner backdrop-blur-xs">
+          <motion.div 
+            animate={{ y: [0, -3, 0], scale: [1, 1.03, 1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            className="w-14 h-14 bg-indigo-600/20 border border-indigo-400/30 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner backdrop-blur-xs cursor-pointer"
+          >
             <Building2 className="w-8 h-8 text-indigo-400" />
-          </div>
+          </motion.div>
           <span className="text-[11px] font-bold tracking-widest text-indigo-300 uppercase block mb-1">
             UNEFCO LA PAZ
           </span>
@@ -92,17 +97,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
         <div className="p-6 sm:p-8">
           
           {error && (
-            <div className="mb-5 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/80 rounded-xl flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300 animate-fade-in">
+            <motion.div 
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/80 rounded-xl flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300"
+            >
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
               <span>{error}</span>
-            </div>
+            </motion.div>
           )}
 
           {infoMessage && (
-            <div className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 rounded-xl flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-300 animate-fade-in">
+            <motion.div 
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 rounded-xl flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-300"
+            >
               <UserCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
               <span>{infoMessage}</span>
-            </div>
+            </motion.div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -142,7 +155,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <AnimatePresence mode="wait">
+                    {showPassword ? (
+                      <motion.div key="off" initial={{ scale: 0.5 }} animate={{ scale: 1 }} exit={{ scale: 0.5 }}>
+                        <EyeOff className="w-4 h-4" />
+                      </motion.div>
+                    ) : (
+                      <motion.div key="eye" initial={{ scale: 0.5 }} animate={{ scale: 1 }} exit={{ scale: 0.5 }}>
+                        <Eye className="w-4 h-4" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </button>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 font-medium">
@@ -151,8 +174,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
               </p>
             </div>
 
-            <button
+            <motion.button
               type="submit"
+              whileHover={{ scale: loading ? 1 : 1.01 }}
+              whileTap={{ scale: loading ? 1 : 0.98 }}
               disabled={loading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 mt-2"
             >
@@ -160,11 +185,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                 <span>Verificando credenciales...</span>
               ) : (
                 <>
-                  <ShieldCheck className="w-4 h-4" />
+                  <motion.div
+                    whileHover={{ scale: 1.2, rotate: [0, -10, 10, 0] }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                  </motion.div>
                   <span>Ingresar al Sistema</span>
                 </>
               )}
-            </button>
+            </motion.button>
           </form>
 
           {/* User selector list - autofills username only */}
@@ -174,9 +204,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
             </span>
             <div className="space-y-2">
               {OFFICIAL_TEAM_PRESETS.map((member) => (
-                <button
+                <motion.button
                   key={member.uid}
                   type="button"
+                  whileHover={{ scale: 1.01, x: 2 }}
+                  whileTap={{ scale: 0.99 }}
                   onClick={() => handleSelectUser(member)}
                   disabled={loading}
                   className={`w-full bg-slate-50 hover:bg-indigo-50/80 dark:bg-slate-800/80 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-200 border p-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer group ${
@@ -209,7 +241,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                   }`}>
                     {member.role === 'admin' ? 'ADMIN' : 'TÉCNICO'}
                   </span>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -223,3 +255,4 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
     </div>
   );
 };
+

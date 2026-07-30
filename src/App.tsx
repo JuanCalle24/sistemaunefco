@@ -3,13 +3,15 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './lib/firebase';
 import { Header } from './components/Header';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar, MainViewOption } from './components/Sidebar';
 import { Timeline } from './components/Timeline';
 import { CicloCard } from './components/CicloCard';
 import { AdminModal } from './components/AdminModal';
 import { DashboardMetrics } from './components/DashboardMetrics';
 import { HistoryModal } from './components/HistoryModal';
 import { ShareModal } from './components/ShareModal';
+import { EventoView } from './components/EventoView';
+import { ProgramarView } from './components/ProgramarView';
 import { AlertsBanner } from './components/AlertsBanner';
 import { ScheduleFilterBar, StatusFilterType } from './components/ScheduleFilterBar';
 import { LoginScreen } from './components/LoginScreen';
@@ -50,6 +52,7 @@ export default function App() {
     return localStorage.getItem('unefco_dark_mode') === 'true';
   });
   const [activeTab, setActiveTab] = useState<'cronograma' | 'dashboard'>('cronograma');
+  const [selectedView, setSelectedView] = useState<MainViewOption>('programar');
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
@@ -96,6 +99,13 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Ensure tecnico state stays synced with logged in currentUser
+  useEffect(() => {
+    if (currentUser?.displayName) {
+      setTecnico(currentUser.displayName);
+    }
+  }, [currentUser]);
 
   const handleSignOut = async () => {
     try {
@@ -321,6 +331,7 @@ export default function App() {
       } else {
         setProgramacionResult(resultado);
         saveToHistory(resultado);
+        setSelectedView('eventos');
       }
       setIsGenerating(false);
     }, 300);
@@ -355,6 +366,7 @@ export default function App() {
     setWarnings(warnList);
     setProgramacionResult(resultado);
     saveToHistory(resultado);
+    setSelectedView('eventos');
     setIsGenerating(false);
   };
 
@@ -582,15 +594,8 @@ export default function App() {
   return (
     <div className={`min-h-screen flex flex-col font-sans antialiased transition-colors ${isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       <Header
-        onGeneratePDF={handleGeneratePDF}
-        pdfDisabled={!programacionResult}
-        totalDaysUsed={programacionResult?.daysUsed}
         isDarkMode={isDarkMode}
         onToggleDarkMode={handleToggleDarkMode}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenShare={() => setIsShareOpen(true)}
         currentUser={currentUser}
         onOpenUserManagement={() => setIsUserMgmtOpen(true)}
         onSignOut={handleSignOut}
@@ -600,6 +605,14 @@ export default function App() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Sidebar Controls */}
         <Sidebar
+          selectedView={selectedView}
+          onSelectView={v => {
+            if (v === 'historial') {
+              setIsHistoryOpen(true);
+            } else {
+              setSelectedView(v);
+            }
+          }}
           modo={modo}
           onToggleModo={m => {
             setModo(m);
@@ -628,22 +641,38 @@ export default function App() {
           onClearAll={handleClearAll}
           errorMessage={errorMessage}
           warnings={warnings}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onOpenHistory={() => setIsHistoryOpen(true)}
+          onOpenShare={() => setIsShareOpen(true)}
+          onGeneratePDF={handleGeneratePDF}
+          pdfDisabled={!programacionResult}
+          onOpenUserManagement={() => setIsUserMgmtOpen(true)}
+          currentUserRole={currentUser?.role}
+          currentUser={currentUser}
+          hasResult={!!programacionResult}
         />
 
         {/* Main Dashboard Panel */}
         <main className="flex-1 p-6 md:p-8 overflow-y-auto space-y-6">
-          {/* Header Section from Stitch */}
+          {/* Header Section */}
           <div className="flex flex-wrap justify-between items-end gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
             <div>
               <nav className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-2 tracking-wider">
                 <span>Gestión Académica</span>
                 <span className="text-slate-400 dark:text-slate-600">›</span>
                 <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-                  {activeTab === 'cronograma' ? 'Cronograma General' : 'Dashboard Metrics'}
+                  {selectedView === 'programar' && 'Programación y Parámetros'}
+                  {selectedView === 'eventos' && 'Evento y Cursos Programados'}
+                  {selectedView === 'dashboard' && 'Métricas e Indicadores'}
+                  {selectedView === 'historial' && 'Historial de Programaciones'}
                 </span>
               </nav>
               <h1 className="font-display text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-                {activeTab === 'cronograma' ? 'Gestión 2026' : 'Dashboard Metrics'}
+                {selectedView === 'programar' && 'Programar Cronograma'}
+                {selectedView === 'eventos' && 'Cursos del Evento'}
+                {selectedView === 'dashboard' && 'Dashboard y Métricas'}
+                {selectedView === 'historial' && 'Historial Registrado'}
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -669,193 +698,82 @@ export default function App() {
             </div>
           </div>
 
-          {!programacionResult ? (
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md shadow-2xs">
-              <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 rounded-md">
-                <FileSpreadsheet className="w-7 h-7" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-1 font-display">
-                Generador y Controlador de Calendarios UNEFCO
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed mb-6 font-medium">
-                Ingrese el docente, asignaciones formativas y fecha de inicio de contrato en el panel de parámetros para calcular el itinerario secuencial.
-              </p>
-              <div className="flex flex-wrap justify-center gap-3 text-xs text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">
-                <span className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  Margen Fijo 100 Días
-                </span>
-                <span className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md">
-                  <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  Sin Colisiones de Feriados
-                </span>
-              </div>
-            </div>
-          ) : activeTab === 'dashboard' ? (
-            /* Dashboard Metrics View */
+          {/* Dynamic Views */}
+          {selectedView === 'programar' && (
+            <ProgramarView
+              modo={modo}
+              onToggleModo={m => {
+                setModo(m);
+                setProgramacionResult(null);
+                setErrorMessage(null);
+                setWarnings([]);
+              }}
+              facilitador={facilitador}
+              onChangeFacilitador={setFacilitador}
+              savedDocentes={savedDocentes}
+              tecnico={tecnico}
+              onChangeTecnico={setTecnico}
+              savedCoordinadores={savedCoordinadores}
+              matrixRows={matrixRows}
+              onAddMatrixRow={handleAddMatrixRow}
+              onRemoveMatrixRow={handleRemoveMatrixRow}
+              onUpdateMatrixRow={handleUpdateMatrixRow}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              feriadosCustom={feriadosLocales}
+              onGenerar={handleGenerar}
+              isGenerating={isGenerating}
+              isValid={isFormValid}
+              totalCiclosCount={totalCiclosCount}
+              onClearAll={handleClearAll}
+              errorMessage={errorMessage}
+              warnings={warnings}
+              currentUser={currentUser}
+            />
+          )}
+
+          {selectedView === 'eventos' && (
+            <EventoView
+              resultado={programacionResult}
+              onGoToProgramar={() => setSelectedView('programar')}
+              filteredSlots={filteredSlots}
+              modo={modo}
+              onManualDateChange={handleManualDateChange}
+              manualDatesMap={manualDatesMap}
+              activeAlerts={activeAlerts}
+              filterCounts={filterCounts}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              selectedTecnico={selectedTecnico}
+              onTecnicoChange={setSelectedTecnico}
+              availableTecnicos={availableTecnicos}
+              onResetFilters={handleResetFilters}
+            />
+          )}
+
+          {selectedView === 'dashboard' && (
             <div className="animate-in fade-in duration-200">
-              <DashboardMetrics resultado={programacionResult} isDarkMode={isDarkMode} />
-            </div>
-          ) : (
-            /* Cronograma Detailed View */
-            <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Critical Alerts Banner & Traffic Light Status */}
-              <AlertsBanner
-                alerts={activeAlerts}
-                onSelectAlertFilter={() => setStatusFilter('alertas')}
-                totalEnCursoCount={filterCounts.en_curso}
-                totalProximosCount={filterCounts.proximos}
-              />
-
-              {/* Timeline Track */}
-              <Timeline
-                slots={programacionResult.slots}
-                asignaciones={programacionResult.asignaciones}
-                fechaInicioContrato={programacionResult.fechaInicioContrato}
-                daysUsed={programacionResult.daysUsed}
-              />
-
-              {/* Search and Semaforización Quick Filter Bar */}
-              <ScheduleFilterBar
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                statusFilter={statusFilter}
-                onStatusFilterChange={setStatusFilter}
-                selectedTecnico={selectedTecnico}
-                onTecnicoChange={setSelectedTecnico}
-                availableTecnicos={availableTecnicos}
-                counts={filterCounts}
-                totalCount={programacionResult.slots.length}
-                filteredCount={filteredSlots.length}
-                onResetFilters={handleResetFilters}
-              />
-
-              {/* Cycle Cards Container */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2 font-display">
-                    Detalle de Asignaciones y Cursos
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-mono">
-                      {filteredSlots.length} {filteredSlots.length === 1 ? 'Ciclo Asignado' : 'Ciclos Asignados'}
-                    </span>
-                  </h2>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
-                    Código de Registro: <code className="text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded">{programacionResult.idTransaccion}</code>
-                  </span>
+              {programacionResult ? (
+                <DashboardMetrics resultado={programacionResult} isDarkMode={isDarkMode} />
+              ) : (
+                <div className="min-h-[350px] flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
+                  <LayoutDashboard className="w-12 h-12 text-slate-400 mb-3" />
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">
+                    No hay datos de Dashboard disponibles
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-sm mb-4">
+                    Genere un cronograma primero para visualizar las métricas y la tasa de cumplimiento.
+                  </p>
+                  <button
+                    onClick={() => setSelectedView('programar')}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl uppercase tracking-wider"
+                  >
+                    Ir a Programar
+                  </button>
                 </div>
-
-                {filteredSlots.length > 0 ? (
-                  <div className="space-y-4">
-                    {filteredSlots.map((slot, idx) => {
-                      const cursosCiclo = programacionResult.asignaciones.filter(
-                        a => a.slotId === slot.id
-                      );
-
-                      return (
-                        <CicloCard
-                          key={slot.id}
-                          slot={slot}
-                          index={idx}
-                          cursos={cursosCiclo}
-                          modo={modo}
-                          onManualDateChange={handleManualDateChange}
-                          manualDates={manualDatesMap}
-                        />
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center space-y-3">
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                      No se encontraron asignaciones que coincidan con los filtros aplicados.
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Intenta cambiar los términos de búsqueda o selecciona la pestaña "Todos".
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleResetFilters}
-                      className="px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-lg hover:bg-indigo-500 transition-colors cursor-pointer"
-                    >
-                      Restablecer Filtros
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Notification & Calendar Export Section for Docente */}
-              <div className="pt-6 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-md border border-slate-200 dark:border-slate-800 shadow-2xs">
-                  <h5 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2 uppercase tracking-wider font-mono">
-                    <FileText className="w-3.5 h-3.5 text-indigo-500" />
-                    Resumen Académico
-                  </h5>
-                  <div className="space-y-2 text-xs">
-                    <p className="text-slate-700 dark:text-slate-300">
-                      <strong className="text-slate-900 dark:text-white">Docente:</strong> {programacionResult.facilitador || 'Por asignar'}
-                    </p>
-                    {programacionResult.tecnico && (
-                      <p className="text-slate-700 dark:text-slate-300">
-                        <strong className="text-slate-900 dark:text-white">Técnico:</strong> {programacionResult.tecnico}
-                      </p>
-                    )}
-                    <p className="text-slate-700 dark:text-slate-300">
-                      <strong className="text-slate-900 dark:text-white">Total Cursos:</strong> {programacionResult.asignaciones.length} asignaciones
-                    </p>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-2 bg-gradient-to-r from-indigo-900 to-slate-900 dark:from-indigo-950 dark:to-slate-950 border border-indigo-800 rounded-md p-6 relative overflow-hidden flex flex-col justify-between">
-                  <div className="relative z-10 mb-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 uppercase">
-                        UNEFCO La Paz
-                      </span>
-                      <span className="text-xs text-indigo-300 font-semibold">• Gestión de Envíos</span>
-                    </div>
-                    <h4 className="text-white font-display text-lg font-bold mb-1">Notificación y Calendario para el Docente</h4>
-                    <p className="text-indigo-200 text-xs max-w-xl">
-                      Envía directamente la programación al docente por WhatsApp o Correo, o descarga el archivo de calendario (<code className="font-mono bg-indigo-900/60 px-1 rounded text-indigo-200">.ics</code>) para agregarlo a Google Calendar.
-                    </p>
-                  </div>
-
-                  <div className="relative z-10 flex flex-wrap gap-3">
-                    <a
-                      href={getWhatsAppShareURL(programacionResult)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>WhatsApp</span>
-                    </a>
-
-                    <a
-                      href={getEmailShareData(programacionResult).mailtoURL}
-                      className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-                    >
-                      <Mail className="w-4 h-4" />
-                      <span>Correo</span>
-                    </a>
-
-                    <button
-                      onClick={() => downloadICSFile(programacionResult)}
-                      className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-                    >
-                      <Calendar className="w-4 h-4 text-indigo-300" />
-                      <span>Google Calendar (.ics)</span>
-                    </button>
-
-                    <button
-                      onClick={() => setIsShareOpen(true)}
-                      className="bg-white/10 hover:bg-white/20 text-white px-3.5 py-2 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer ml-auto border border-white/20"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Ver Opciones</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </main>
@@ -894,6 +812,7 @@ export default function App() {
         feriadosLocales={feriadosLocales}
         onAddFeriadoLocal={handleAddFeriadoLocal}
         onRemoveFeriadoLocal={handleRemoveFeriadoLocal}
+        currentUser={currentUser}
       />
 
       {/* History Modal */}
@@ -910,6 +829,7 @@ export default function App() {
           const next = history.filter(h => h.idTransaccion !== id);
           setHistory(next);
         }}
+        currentUser={currentUser}
       />
 
       {/* User & Technician Management Modal */}
