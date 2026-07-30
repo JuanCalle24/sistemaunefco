@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  ProgramacionResultado 
+  ProgramacionResultado, UserRole, UserProfile
 } from '../types';
 import { formatDateVisual } from '../utils/textUtils';
 import { 
@@ -14,19 +14,33 @@ import {
   Calendar,
   FileCheck2,
   Filter,
-  UserCheck
+  UserCheck,
+  ShieldCheck,
+  Activity,
+  Layers
 } from 'lucide-react';
 
 interface DashboardMetricsProps {
   resultado: ProgramacionResultado;
   isDarkMode?: boolean;
+  activeRole?: UserRole;
+  currentUser?: UserProfile | null;
+  history?: ProgramacionResultado[];
 }
 
 export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
   resultado,
-  isDarkMode
+  isDarkMode,
+  activeRole = 'tecnico',
+  currentUser,
+  history = []
 }) => {
   const [filterStatus, setFilterStatus] = useState<'todos' | 'en_curso' | 'proximo' | 'informe_pendiente' | 'finalizado'>('todos');
+  
+  const isAdminMode = activeRole === 'admin';
+  const totalGlobalRecords = history.length;
+  const activeGlobalRecords = history.filter(h => h.estado !== 'ANULADO').length;
+  const anuladosGlobalRecords = history.filter(h => h.estado === 'ANULADO').length;
   
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
@@ -84,6 +98,52 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Active Role Mode Indicator Banner */}
+      <div className={`p-4 rounded-xl border flex flex-wrap items-center justify-between gap-4 transition-all shadow-xs ${
+        isAdminMode
+          ? 'bg-purple-50/80 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800/60 text-purple-950 dark:text-purple-100'
+          : 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-100'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-xs shrink-0 ${
+            isAdminMode
+              ? 'bg-purple-600 text-white'
+              : 'bg-indigo-600 text-white'
+          }`}>
+            {isAdminMode ? <ShieldCheck className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider">
+                {isAdminMode ? 'Modo Administrador: Visión Global de la Sede' : 'Modo Técnico de Seguimiento: Carga y Verificación Personal'}
+              </h2>
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase border ${
+                isAdminMode
+                  ? 'bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-300'
+                  : 'bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 border-indigo-300'
+              }`}>
+                {isAdminMode ? 'Auditoría Global' : 'Foco Operativo'}
+              </span>
+            </div>
+            <p className="text-[11px] opacity-80 mt-0.5 font-medium">
+              {isAdminMode
+                ? `Monitoreo consolidado de la Sede UNEFCO La Paz. Historial global: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
+                : `Supervisión de cronogramas y cursos activos bajo la gestión de ${currentUser?.displayName || resultado.tecnico || 'Técnico de Seguimiento'}.`}
+            </p>
+          </div>
+        </div>
+
+        {isAdminMode && (
+          <div className="flex items-center gap-3 text-xs font-mono font-bold bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800/60 shadow-2xs">
+            <span className="text-slate-500">Cronogramas Sede:</span>
+            <span className="text-purple-700 dark:text-purple-300">{activeGlobalRecords} Activos</span>
+            {anuladosGlobalRecords > 0 && (
+              <span className="text-red-600 dark:text-red-400">({anuladosGlobalRecords} Anulados)</span>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* En Curso Card */}

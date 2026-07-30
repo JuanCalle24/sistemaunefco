@@ -72,6 +72,9 @@ export interface ProgramacionResultado {
   estado?: 'ACTIVO' | 'ANULADO';
   motivoAnulacion?: string;
   fechaAnulacion?: string;
+  rolOperador?: UserRole;
+  usuarioRegistro?: string;
+  usuarioAnulador?: string;
 }
 
 export interface ManualCourseInput {

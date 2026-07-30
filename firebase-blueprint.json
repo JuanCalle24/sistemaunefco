@@ -1,32 +1,43 @@
 {
   "entities": {
-    "users": {
-      "title": "Usuarios y Técnicos",
-      "description": "Perfiles de usuarios del sistema UNEFCO (Administrador y Técnicos de Seguimiento)",
+    "schedules": {
+      "title": "Programaciones y Cronogramas",
+      "description": "Historial de cronogramas generados por los técnicos y administradores",
+      "type": "object",
       "properties": {
-        "email": { "type": "string" },
-        "displayName": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "tecnico"] },
-        "status": { "type": "string", "enum": ["active", "inactive"] },
-        "cargo": { "type": "string" },
-        "createdAt": { "type": "string" }
-      },
-      "required": ["email", "displayName", "role", "status"]
-    },
-    "programaciones": {
-      "title": "Programaciones de Cronogramas",
-      "description": "Cronogramas de seguimiento generados y respaldados en la nube",
-      "properties": {
+        "idTransaccion": { "type": "string" },
         "facilitador": { "type": "string" },
+        "ci": { "type": "string" },
+        "ciComplemento": { "type": "string" },
         "tecnico": { "type": "string" },
-        "createdById": { "type": "string" },
-        "createdByEmail": { "type": "string" },
-        "createdAt": { "type": "string" },
         "daysUsed": { "type": "number" },
         "modo": { "type": "string" },
-        "hashSeguridad": { "type": "string" }
+        "hashSeguridad": { "type": "string" },
+        "estado": { "type": "string" },
+        "motivoAnulacion": { "type": "string" },
+        "fechaAnulacion": { "type": "string" },
+        "rolOperador": { "type": "string" },
+        "usuarioRegistro": { "type": "string" },
+        "usuarioAnulador": { "type": "string" },
+        "createdAt": { "type": "string" }
       },
-      "required": ["facilitador", "tecnico", "createdById", "createdAt"]
+      "required": ["idTransaccion", "facilitador", "tecnico"]
+    },
+    "users": {
+      "title": "Perfiles de Usuarios",
+      "description": "Usuarios del sistema UNEFCO (administradores y técnicos)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "cargo": { "type": "string" },
+        "departamento": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
     }
   }
 }

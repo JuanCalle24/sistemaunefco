@@ -134,6 +134,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-lg border border-indigo-200 dark:border-indigo-800 font-mono">
                           ID: {item.idTransaccion}
                         </span>
+                        {item.rolOperador && (
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border uppercase tracking-wide ${
+                            item.rolOperador === 'admin'
+                              ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                              : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                          }`}>
+                            Rol: {item.rolOperador === 'admin' ? 'ADMIN' : 'TÉCNICO'}
+                          </span>
+                        )}
                         {item.estado === 'ANULADO' && (
                           <span className="text-[9px] bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 font-bold px-2 py-0.5 rounded-lg border border-red-200 dark:border-red-800 uppercase flex items-center gap-1">
                             <Ban className="w-3 h-3 text-red-600" />

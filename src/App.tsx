@@ -33,6 +33,7 @@ import { generatePDFDocument } from './utils/pdfGenerator';
 import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
 
 import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser } from './utils/authService';
+import { saveScheduleToFirestore, subscribeToSchedules } from './services/scheduleService';
 
 export default function App() {
   // Auth State
@@ -299,34 +300,63 @@ export default function App() {
     localStorage.setItem('unefco_history_schedules', JSON.stringify(history));
   }, [history]);
 
-  // Helper to save schedule to history
-  const saveToHistory = (res: ProgramacionResultado) => {
-    setHistory(prev => {
-      const filtered = prev.filter(item => item.idTransaccion !== res.idTransaccion);
-      return [res, ...filtered].slice(0, 30);
+  // Real-time listener for Firestore database sync
+  useEffect(() => {
+    const unsubscribe = subscribeToSchedules((remoteSchedules) => {
+      if (remoteSchedules && remoteSchedules.length > 0) {
+        setHistory(remoteSchedules);
+      }
     });
+    return () => unsubscribe();
+  }, []);
+
+  // Helper to save schedule to history with active role transparency and Firestore sync
+  const saveToHistory = (res: ProgramacionResultado) => {
+    const enrichedRes: ProgramacionResultado = {
+      ...res,
+      rolOperador: res.rolOperador || activeRole,
+      usuarioRegistro: res.usuarioRegistro || currentUser?.displayName || tecnico
+    };
+    setProgramacionResult(enrichedRes);
+    setHistory(prev => {
+      const filtered = prev.filter(item => item.idTransaccion !== enrichedRes.idTransaccion);
+      return [enrichedRes, ...filtered].slice(0, 30);
+    });
+    // Sync seamlessly to Firestore database
+    saveScheduleToFirestore(enrichedRes);
   };
 
-  // Cancellation and deletion logic with active role authorization
+  // Cancellation and deletion logic with active role authorization and Firestore sync
   const handleAnularHistoryItem = (idTransaccion: string, motivo: string) => {
+    const currentUserName = (currentUser?.displayName || tecnico).trim().toLowerCase();
+    let updatedTarget: ProgramacionResultado | null = null;
     setHistory(prev =>
       prev.map(item => {
         if (item.idTransaccion === idTransaccion) {
-          if (activeRole === 'tecnico' && item.tecnico !== (currentUser?.displayName || tecnico)) {
-            alert('Restricción de Seguridad: El Técnico de Seguimiento solo puede anular sus propios cronogramas.');
+          const itemTech = (item.tecnico || '').trim().toLowerCase();
+          const itemReg = (item.usuarioRegistro || '').trim().toLowerCase();
+
+          if (activeRole === 'tecnico' && itemTech !== currentUserName && itemReg !== currentUserName) {
+            alert('Restricción de Seguridad: En Modo Técnico de Seguimiento solo puedes anular tus propios cronogramas. Cambia a Modo Administrador si necesitas anular registros de otros técnicos.');
             return item;
           }
-          return {
+
+          const updated: ProgramacionResultado = {
             ...item,
             estado: 'ANULADO',
             motivoAnulacion: motivo,
-            fechaAnulacion: new Date(),
+            fechaAnulacion: new Date() as any,
             usuarioAnulador: currentUser?.displayName || tecnico
           };
+          updatedTarget = updated;
+          return updated;
         }
         return item;
       })
     );
+    if (updatedTarget) {
+      saveScheduleToFirestore(updatedTarget);
+    }
   };
 
   const handleDeleteHistoryItem = (idTransaccion: string) => {
@@ -717,6 +747,8 @@ export default function App() {
         currentUser={currentUser}
         onOpenUserManagement={() => setIsUserMgmtOpen(true)}
         onSignOut={handleSignOut}
+        activeRole={activeRole}
+        onToggleActiveRole={handleToggleActiveRole}
       />
 
 
@@ -768,6 +800,7 @@ export default function App() {
           onOpenUserManagement={() => setIsUserMgmtOpen(true)}
           currentUserRole={currentUser?.role}
           currentUser={currentUser}
+          activeRole={activeRole}
           hasResult={!!programacionResult}
         />
 
@@ -877,7 +910,13 @@ export default function App() {
           {selectedView === 'dashboard' && (
             <div className="animate-in fade-in duration-200">
               {programacionResult ? (
-                <DashboardMetrics resultado={programacionResult} isDarkMode={isDarkMode} />
+                <DashboardMetrics 
+                  resultado={programacionResult} 
+                  isDarkMode={isDarkMode} 
+                  activeRole={activeRole}
+                  currentUser={currentUser}
+                  history={history}
+                />
               ) : (
                 <div className="min-h-[350px] flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
                   <LayoutDashboard className="w-12 h-12 text-slate-400 mb-3" />

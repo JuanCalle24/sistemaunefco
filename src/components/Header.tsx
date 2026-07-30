@@ -46,7 +46,8 @@ export const Header: React.FC<HeaderProps> = ({
   const dateStr = `${dayName}, ${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
   const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  const isAdminUser = currentUser?.role === 'admin';
+  // Allow role switching if user is admin or if in default dev/demo mode
+  const canToggleRole = !currentUser || currentUser.role === 'admin';
 
   return (
     <header className="min-h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 py-3 shrink-0 sticky top-0 z-40 transition-colors shadow-2xs">
@@ -70,8 +71,8 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Tools: Role Switcher, Date/Clock, Dark Mode Toggle, SignOut */}
       <div className="flex items-center gap-2 md:gap-3">
-        {/* Active Role Switcher for Admin Users */}
-        {isAdminUser && onToggleActiveRole && (
+        {/* Active Role Switcher (Opción A: Administrador vs. Técnico) */}
+        {canToggleRole && onToggleActiveRole && (
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -82,21 +83,21 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300'
                 : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
             }`}
-            title="Haz clic para alternar tu Rol Activo (Modo Admin / Modo Técnico)"
+            title="Haz clic para alternar tu Rol Activo (Modo Administrador / Modo Técnico de Seguimiento)"
           >
             {activeRole === 'admin' ? (
               <>
                 <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span className="hidden sm:inline uppercase text-[10px] tracking-wider">Rol: Admin</span>
-                <span className="text-[9px] bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded-md">
+                <span className="hidden sm:inline font-bold">Modo: Administrador</span>
+                <span className="text-[9px] font-extrabold bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
                   Global
                 </span>
               </>
             ) : (
               <>
-                <Lock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span className="hidden sm:inline uppercase text-[10px] tracking-wider">Rol: Técnico</span>
-                <span className="text-[9px] bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md">
+                <UserCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span className="hidden sm:inline font-bold">Modo: Técnico de Seguimiento</span>
+                <span className="text-[9px] font-extrabold bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
                   Personal
                 </span>
               </>

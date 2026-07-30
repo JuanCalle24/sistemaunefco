@@ -84,6 +84,7 @@ interface SidebarProps {
   pdfDisabled?: boolean;
   onOpenUserManagement?: () => void;
   currentUser?: UserProfile | null;
+  activeRole?: 'admin' | 'tecnico';
   hasResult?: boolean;
 }
 
@@ -147,9 +148,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pdfDisabled = true,
   onOpenUserManagement,
   currentUser,
+  activeRole = 'tecnico',
   hasResult = false
 }) => {
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = activeRole === 'admin';
 
   // State for Accordion Menu sections
   const [openProgramacion, setOpenProgramacion] = useState(true);
@@ -202,9 +204,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="min-w-0">
                 <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider truncate flex items-center gap-1">
                   <span>Sede La Paz</span>
-                  {isAdmin && (
+                  {isAdmin ? (
                     <span className="text-[9px] bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-1 rounded font-black">
                       ADMIN
+                    </span>
+                  ) : (
+                    <span className="text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-1 rounded font-black">
+                      TÉCNICO
                     </span>
                   )}
                 </div>
