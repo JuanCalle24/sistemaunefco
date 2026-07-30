@@ -9,24 +9,28 @@ interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   history: ProgramacionResultado[];
-  onLoadSchedule: (prog: ProgramacionResultado) => void;
-  onClearHistory: () => void;
-  onRemoveHistoryItem: (id: string) => void;
+  onSelectHistoryItem: (prog: ProgramacionResultado) => void;
+  onAnularHistoryItem: (id: string, motivo: string) => void;
+  onDeleteHistoryItem: (id: string) => void;
+  onClearHistory?: () => void;
   currentUser?: UserProfile | null;
+  activeRole?: string;
 }
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({
   isOpen,
   onClose,
   history,
-  onLoadSchedule,
+  onSelectHistoryItem,
+  onAnularHistoryItem,
+  onDeleteHistoryItem,
   onClearHistory,
-  onRemoveHistoryItem,
-  currentUser
+  currentUser,
+  activeRole = 'tecnico'
 }) => {
   if (!isOpen) return null;
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = activeRole === 'admin' || currentUser?.role === 'admin';
   const currentTechName = currentUser?.displayName?.trim().toLowerCase() || '';
 
   // Can the user clear all history? Only Admin or if all records belong to current user
@@ -153,7 +157,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         whileTap={{ scale: 0.96 }}
                         type="button"
                         onClick={() => {
-                          onLoadSchedule(item);
+                          onSelectHistoryItem(item);
                           onClose();
                         }}
                         className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
@@ -175,27 +179,49 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         <span>PDF</span>
                       </motion.button>
 
-                      {/* Delete / Anular Button with Strict Owner/Admin Permission Check */}
-                      {isOwner ? (
+                      {/* Anular Button (Available to Owner Technician and Admin) */}
+                      {isOwner && item.estado !== 'ANULADO' && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          type="button"
+                          onClick={() => {
+                            const motivo = prompt('Por favor ingrese el motivo de la anulación de este cronograma:') || 'Anulación realizada por el Técnico de Seguimiento';
+                            onAnularHistoryItem(item.idTransaccion, motivo);
+                          }}
+                          className="px-2.5 py-1.5 text-amber-700 dark:text-amber-400 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-xl transition-colors cursor-pointer text-xs font-bold uppercase flex items-center gap-1"
+                          title="Anular cronograma (No se borra del historial)"
+                        >
+                          <Ban className="w-3.5 h-3.5" />
+                          <span>Anular</span>
+                        </motion.button>
+                      )}
+
+                      {/* Delete Button (Strict Admin Only) */}
+                      {isAdmin ? (
                         <motion.button
                           whileHover={{ scale: 1.1, rotate: 6 }}
                           whileTap={{ scale: 0.9 }}
                           type="button"
-                          onClick={() => onRemoveHistoryItem(item.idTransaccion)}
+                          onClick={() => {
+                            if (confirm(`¿Confirma eliminar definitivamente el cronograma ${item.idTransaccion}? Esta acción no se puede deshacer.`)) {
+                              onDeleteHistoryItem(item.idTransaccion);
+                            }
+                          }}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer"
-                          title="Anular / Eliminar de mi historial"
+                          title="Eliminar permanentemente del historial (Solo Admin)"
                         >
                           <Trash2 className="w-4 h-4" />
                         </motion.button>
-                      ) : (
+                      ) : !isOwner ? (
                         <div 
                           className="p-1.5 text-slate-400 dark:text-slate-600 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center gap-1 text-[10px] font-bold"
-                          title="Solo el técnico autor o el Administrador pueden borrar o anular este registro"
+                          title="Solo el técnico autor o el Administrador pueden modificar este registro"
                         >
                           <Lock className="w-3.5 h-3.5 shrink-0" />
-                          <span className="hidden sm:inline">Protegido</span>
+                          <span className="hidden sm:inline font-mono">Protegido</span>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </motion.div>
                 );

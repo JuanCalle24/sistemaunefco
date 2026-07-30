@@ -37,7 +37,9 @@ export function calculateSchedulerAuto(
   facilitador: string,
   tecnico: string,
   fechaInicioContrato: Date,
-  feriadosCustom: string[] = []
+  feriadosCustom: string[] = [],
+  ci?: string,
+  ciComplemento?: string
 ): { resultado: ProgramacionResultado | null; errorMsg: string | null } {
   const inicioContrato = new Date(fechaInicioContrato);
   inicioContrato.setHours(0, 0, 0, 0);
@@ -150,6 +152,8 @@ export function calculateSchedulerAuto(
     asignaciones,
     slots,
     facilitador,
+    ci,
+    ciComplemento,
     tecnico,
     fechaInicioContrato: inicioContrato,
     limiteContrato,
@@ -173,7 +177,9 @@ export function calculateSchedulerManual(
   facilitador: string,
   tecnico: string,
   fechaInicioContrato: Date,
-  feriadosCustom: string[] = []
+  feriadosCustom: string[] = [],
+  ci?: string,
+  ciComplemento?: string
 ): { resultado: ProgramacionResultado | null; warnings: string[] } {
   const inicioContrato = new Date(fechaInicioContrato);
   inicioContrato.setHours(0, 0, 0, 0);
@@ -246,6 +252,8 @@ export function calculateSchedulerManual(
     asignaciones,
     slots,
     facilitador,
+    ci,
+    ciComplemento,
     tecnico,
     fechaInicioContrato: inicioContrato,
     limiteContrato,

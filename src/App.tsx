@@ -11,11 +11,12 @@ import { DashboardMetrics } from './components/DashboardMetrics';
 import { HistoryModal } from './components/HistoryModal';
 import { ShareModal } from './components/ShareModal';
 import { EventoView } from './components/EventoView';
-import { ProgramarView } from './components/ProgramarView';
+import { ProgramarView, MatrixRowItem } from './components/ProgramarView';
 import { AlertsBanner } from './components/AlertsBanner';
 import { ScheduleFilterBar, StatusFilterType } from './components/ScheduleFilterBar';
 import { LoginScreen } from './components/LoginScreen';
 import { UserManagementModal } from './components/UserManagementModal';
+import { InactivityModal } from './components/InactivityModal';
 import { generateCourseAlerts, getAlertSeverity } from './utils/alertUtils';
 import { downloadICSFile, getWhatsAppShareURL, getEmailShareData } from './utils/calendarAndSharing';
 import { OFERTA_FORMATIVA_UNEFCO_2026 } from './data/ofertaFormativa';
@@ -24,28 +25,88 @@ import {
   ProgramacionResultado, 
   Modalidad, 
   ManualCourseInput,
-  UserProfile 
+  UserProfile,
+  UserRole
 } from './types';
 import { calculateSchedulerAuto, calculateSchedulerManual } from './utils/scheduler';
 import { generatePDFDocument } from './utils/pdfGenerator';
 import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
 
-
 import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser } from './utils/authService';
-
-interface MatrixRowItem {
-  id: string;
-  cicloIndex: number;
-  cant: number;
-  lugar: string;
-  modalidad: Modalidad;
-}
 
 export default function App() {
   // Auth State
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [isUserMgmtOpen, setIsUserMgmtOpen] = useState<boolean>(false);
+
+  // Active Role Selection (Option A)
+  const [activeRole, setActiveRole] = useState<UserRole>('tecnico');
+
+  // Sync activeRole with currentUser role when user logs in
+  useEffect(() => {
+    if (currentUser) {
+      setActiveRole(currentUser.role || 'tecnico');
+    }
+  }, [currentUser]);
+
+  const handleToggleActiveRole = () => {
+    if (currentUser?.role !== 'admin') return;
+    setActiveRole(prev => (prev === 'admin' ? 'tecnico' : 'admin'));
+  };
+
+  // Inactivity & Session Timeout Management
+  const [showInactivityModal, setShowInactivityModal] = useState<boolean>(false);
+  const [inactivityRemainingSeconds, setInactivityRemainingSeconds] = useState<number>(60);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let inactivityTimer: NodeJS.Timeout;
+    const INACTIVITY_TIMEOUT_MS = 9 * 60 * 1000; // 9 minutes of inactivity before warning
+
+    const resetInactivityTimer = () => {
+      if (showInactivityModal) return;
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        setShowInactivityModal(true);
+        setInactivityRemainingSeconds(60);
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    activityEvents.forEach(evt => window.addEventListener(evt, resetInactivityTimer));
+    resetInactivityTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach(evt => window.removeEventListener(evt, resetInactivityTimer));
+    };
+  }, [currentUser, showInactivityModal]);
+
+  // Handle countdown when inactivity modal is visible
+  useEffect(() => {
+    if (!showInactivityModal) return;
+
+    const interval = setInterval(() => {
+      setInactivityRemainingSeconds(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          handleSignOut();
+          setShowInactivityModal(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [showInactivityModal]);
+
+  const handleExtendSession = () => {
+    setShowInactivityModal(false);
+    setInactivityRemainingSeconds(60);
+  };
 
   // Theme & Views
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -108,6 +169,18 @@ export default function App() {
   }, [currentUser]);
 
   const handleSignOut = async () => {
+    // Save draft state before logging out if form has input
+    if (facilitador || ci) {
+      const draftState = {
+        facilitador,
+        ci,
+        matrixRows,
+        selectedDate: selectedDate ? selectedDate.toISOString() : null,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem('unefco_form_draft', JSON.stringify(draftState));
+    }
+
     try {
       await signOut(auth);
     } catch (err) {
@@ -116,7 +189,6 @@ export default function App() {
     clearLoggedInUser();
     setCurrentUser(null);
   };
-
 
   // History State
   const [history, setHistory] = useState<ProgramacionResultado[]>(() => {
@@ -148,6 +220,7 @@ export default function App() {
 
   // Personal
   const [facilitador, setFacilitador] = useState<string>('M.Sc. Roberto Paredes');
+  const [ci, setCi] = useState<string>('6849201');
   const [tecnico, setTecnico] = useState<string>('Juan Carlos Calle');
 
   const [savedDocentes, setSavedDocentes] = useState<string[]>(() => {
@@ -230,8 +303,38 @@ export default function App() {
   const saveToHistory = (res: ProgramacionResultado) => {
     setHistory(prev => {
       const filtered = prev.filter(item => item.idTransaccion !== res.idTransaccion);
-      return [res, ...filtered].slice(0, 15);
+      return [res, ...filtered].slice(0, 30);
     });
+  };
+
+  // Cancellation and deletion logic with active role authorization
+  const handleAnularHistoryItem = (idTransaccion: string, motivo: string) => {
+    setHistory(prev =>
+      prev.map(item => {
+        if (item.idTransaccion === idTransaccion) {
+          if (activeRole === 'tecnico' && item.tecnico !== (currentUser?.displayName || tecnico)) {
+            alert('Restricción de Seguridad: El Técnico de Seguimiento solo puede anular sus propios cronogramas.');
+            return item;
+          }
+          return {
+            ...item,
+            estado: 'ANULADO',
+            motivoAnulacion: motivo,
+            fechaAnulacion: new Date(),
+            usuarioAnulador: currentUser?.displayName || tecnico
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleDeleteHistoryItem = (idTransaccion: string) => {
+    if (activeRole !== 'admin') {
+      alert('Acceso Denegado: Solo el Administrador del Sistema puede eliminar registros permanentemente del historial.');
+      return;
+    }
+    setHistory(prev => prev.filter(item => item.idTransaccion !== idTransaccion));
   };
 
   // Expand matrix rows into Slots array
@@ -239,6 +342,16 @@ export default function App() {
     const slots: SlotAsignacion[] = [];
     matrixRows.forEach((row, rIdx) => {
       const oferta = OFERTA_FORMATIVA_UNEFCO_2026[row.cicloIndex];
+      let courseList = oferta.cursos;
+
+      // Exceptional / Single Course Assignment
+      if (row.isExceptional && typeof row.selectedCursoIndex === 'number' && row.selectedCursoIndex >= 0) {
+        const singleCourse = oferta.cursos[row.selectedCursoIndex];
+        if (singleCourse) {
+          courseList = [singleCourse];
+        }
+      }
+
       for (let g = 0; g < row.cant; g++) {
         slots.push({
           id: `${oferta.id}-${rIdx + 1}-${g + 1}`,
@@ -246,9 +359,11 @@ export default function App() {
           cicloNombre: oferta.nombre,
           cat: oferta.cat,
           duracionCurso: oferta.duracionDiasCurso,
-          cursos: oferta.cursos,
+          cursos: courseList,
           lugar: (row.lugar || (oferta.cat === 'TACFI' ? 'SEDE CENTRAL - LA PAZ' : 'SEDE VIACHA')).toUpperCase(),
-          modalidad: row.modalidad
+          modalidad: row.modalidad,
+          isExceptional: row.isExceptional,
+          selectedCursoIndex: row.selectedCursoIndex
         });
       }
     });
@@ -257,7 +372,8 @@ export default function App() {
 
   const totalCiclosCount = currentSlots.length;
   const isFormValid =
-    facilitador.trim() !== '' &&
+    (facilitador || '').trim() !== '' &&
+    (ci || '').trim() !== '' &&
     selectedDate !== null &&
     totalCiclosCount > 0 &&
     totalCiclosCount <= 5;
@@ -306,7 +422,7 @@ export default function App() {
 
   // Trigger Automatic Scheduler Calculation
   const triggerCalculationAuto = () => {
-    if (!selectedDate || !facilitador) return;
+    if (!selectedDate || !facilitador || !ci) return;
     setIsGenerating(true);
     setErrorMessage(null);
     setWarnings([]);
@@ -322,7 +438,8 @@ export default function App() {
         facilitador,
         tecnico,
         selectedDate,
-        feriadosLocales
+        feriadosLocales,
+        ci
       );
 
       if (errorMsg) {
@@ -330,7 +447,7 @@ export default function App() {
         setProgramacionResult(null);
       } else {
         setProgramacionResult(resultado);
-        saveToHistory(resultado);
+        if (resultado) saveToHistory(resultado);
         setSelectedView('eventos');
       }
       setIsGenerating(false);
@@ -339,7 +456,7 @@ export default function App() {
 
   // Trigger Manual Calculation
   const triggerCalculationManual = (datesMap = manualDatesMap) => {
-    if (!selectedDate || !facilitador) return;
+    if (!selectedDate || !facilitador || !ci) return;
     setIsGenerating(true);
     setErrorMessage(null);
 
@@ -360,12 +477,13 @@ export default function App() {
       facilitador,
       tecnico,
       selectedDate,
-      feriadosLocales
+      feriadosLocales,
+      ci
     );
 
-    setWarnings(warnList);
     setProgramacionResult(resultado);
-    saveToHistory(resultado);
+    setWarnings(warnList);
+    if (resultado) saveToHistory(resultado);
     setSelectedView('eventos');
     setIsGenerating(false);
   };
@@ -711,6 +829,9 @@ export default function App() {
               facilitador={facilitador}
               onChangeFacilitador={setFacilitador}
               savedDocentes={savedDocentes}
+              ci={ci}
+              onChangeCi={setCi}
+              history={history}
               tecnico={tecnico}
               onChangeTecnico={setTecnico}
               savedCoordinadores={savedCoordinadores}
@@ -820,16 +941,15 @@ export default function App() {
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         history={history}
-        onLoadSchedule={handleLoadScheduleFromHistory}
-        onClearHistory={() => {
-          setHistory([]);
-          localStorage.removeItem('unefco_history_schedules');
+        onSelectHistoryItem={(item) => {
+          setProgramacionResult(item);
+          setSelectedView('eventos');
+          setIsHistoryOpen(false);
         }}
-        onRemoveHistoryItem={(id) => {
-          const next = history.filter(h => h.idTransaccion !== id);
-          setHistory(next);
-        }}
+        onAnularHistoryItem={handleAnularHistoryItem}
+        onDeleteHistoryItem={handleDeleteHistoryItem}
         currentUser={currentUser}
+        activeRole={activeRole}
       />
 
       {/* User & Technician Management Modal */}
@@ -840,6 +960,14 @@ export default function App() {
           currentUser={currentUser}
         />
       )}
+
+      {/* Inactivity Security Warning Modal */}
+      <InactivityModal
+        isOpen={showInactivityModal}
+        remainingSeconds={inactivityRemainingSeconds}
+        onExtendSession={handleExtendSession}
+        onSignOut={handleSignOut}
+      />
     </div>
   );
 }

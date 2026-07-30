@@ -53,7 +53,8 @@ export async function generatePDFDocument(prog: ProgramacionResultado): Promise<
   doc.setTextColor(40, 40, 40);
   doc.text("Facilitador:", 14, y);
   doc.setFont("helvetica", "normal");
-  doc.text(capitalizeName(prog.facilitador), 38, y);
+  const ciLabel = prog.ci ? ` (CI: ${prog.ci})` : '';
+  doc.text(`${capitalizeName(prog.facilitador)}${ciLabel}`, 38, y);
 
   doc.setFont("helvetica", "bold");
   doc.text("Técnico de Seguimiento:", 135, y);

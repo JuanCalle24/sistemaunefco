@@ -17,20 +17,27 @@ import {
   Building2,
   CheckCircle2,
   ShieldCheck,
-  Lock
+  Lock,
+  CreditCard,
+  FileCheck2,
+  Sparkles,
+  HelpCircle,
+  Layers
 } from 'lucide-react';
 import { OFERTA_FORMATIVA_UNEFCO_2026 } from '../data/ofertaFormativa';
 import { DatePickerPopup } from './DatePickerPopup';
-import { Modalidad, UserProfile } from '../types';
+import { Modalidad, UserProfile, ProgramacionResultado } from '../types';
 import { capitalizeName } from '../utils/textUtils';
 import { GRADOS_ACADEMICOS, parseDegreeAndName } from './Sidebar';
 
-interface MatrixRowItem {
+export interface MatrixRowItem {
   id: string;
   cicloIndex: number;
   cant: number;
   lugar: string;
   modalidad: Modalidad;
+  isExceptional?: boolean;
+  selectedCursoIndex?: number | null;
 }
 
 interface ProgramarViewProps {
@@ -40,6 +47,12 @@ interface ProgramarViewProps {
   facilitador: string;
   onChangeFacilitador: (v: string) => void;
   savedDocentes: string[];
+
+  ci: string;
+  onChangeCi: (v: string) => void;
+  ciComplemento?: string;
+  onChangeCiComplemento?: (v: string) => void;
+  history?: ProgramacionResultado[];
   
   tecnico: string;
   onChangeTecnico: (v: string) => void;
@@ -70,6 +83,11 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
   facilitador,
   onChangeFacilitador,
   savedDocentes,
+  ci = '',
+  onChangeCi,
+  ciComplemento = '',
+  onChangeCiComplemento,
+  history = [],
   tecnico,
   onChangeTecnico,
   savedCoordinadores,
@@ -103,6 +121,15 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
     onChangeFacilitador(combined);
   };
 
+  // Compute active phase for the entered CI
+  const cleanCi = (ci || '').trim();
+  
+  const activeRecordsForCi = history.filter(h => {
+    if (h.estado === 'ANULADO') return false;
+    const itemCi = (h.ci || '').trim();
+    return itemCi === cleanCi && Boolean(cleanCi);
+  });
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
       {/* Title & Description Banner */}
@@ -126,9 +153,17 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Section 1: Personal Asignado */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3 font-display">
-            <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <span>Personal Asignado</span>
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider font-display">
+              <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Personal Asignado</span>
+            </div>
+            {cleanCi && (
+              <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span>CI Registrada</span>
+              </span>
+            )}
           </div>
 
           {/* Facilitador */}
@@ -169,6 +204,42 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                     {doc}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Cédula de Identidad (CI) */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Cédula de Identidad (CI) <span className="text-red-500">*</span>
+            </label>
+            <div className="relative flex items-center">
+              <CreditCard className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                required
+                placeholder="Ej: 6849201"
+                value={ci}
+                onChange={(e) => onChangeCi(e.target.value.replace(/[^0-9]/g, ''))}
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600"
+              />
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-tight">
+              * Obligatorio. Ingrese exclusivamente dígitos numéricos (sin letras, guiones ni extensión departamental).
+            </p>
+
+            {/* Active Phase Progress Display for CI */}
+            {cleanCi && (
+              <div className="mt-2 p-2.5 bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl flex items-center justify-between text-[11px]">
+                <span className="font-semibold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                  <Workflow className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Historial para CI <strong>{cleanCi}</strong>:</span>
+                </span>
+                <span className="font-bold text-indigo-700 dark:text-indigo-300 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
+                  {activeRecordsForCi.length} Cronograma(s) Activo(s)
+                </span>
               </div>
             )}
           </div>
@@ -264,60 +335,118 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
         </div>
 
         <div className="space-y-3">
-          {matrixRows.map((row, rowIdx) => (
-            <div
-              key={row.id}
-              className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                  Asignación #{rowIdx + 1}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveMatrixRow(row.id)}
-                  className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 p-1 transition-colors cursor-pointer"
-                  title="Eliminar asignación"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+          {matrixRows.map((row, rowIdx) => {
+            const selectedCicloObj = OFERTA_FORMATIVA_UNEFCO_2026[row.cicloIndex];
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="md:col-span-2">
-                  <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block mb-1">
-                    Ciclo del Oferta Formativa UNEFCO 2026
-                  </label>
-                  <select
-                    value={row.cicloIndex}
-                    onChange={e => {
-                      const idx = parseInt(e.target.value, 10);
-                      onUpdateMatrixRow(row.id, 'cicloIndex', idx);
-                    }}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 cursor-pointer"
+            return (
+              <div
+                key={row.id}
+                className={`border rounded-xl p-4 space-y-3 transition-colors ${
+                  row.isExceptional 
+                    ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60'
+                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                      Asignación #{rowIdx + 1}
+                    </span>
+                    {row.isExceptional && (
+                      <span className="text-[9px] bg-amber-100 dark:bg-amber-900/80 text-amber-800 dark:text-amber-200 font-extrabold px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-700 uppercase flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-600" />
+                        Curso Excepcional / Carga Parcial
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveMatrixRow(row.id)}
+                    className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 p-1 transition-colors cursor-pointer"
+                    title="Eliminar asignación"
                   >
-                    {OFERTA_FORMATIVA_UNEFCO_2026.map((c, idx) => (
-                      <option key={c.id} value={idx}>
-                        {c.id} | {c.cat === 'TACFI' ? '30d Est.' : '15d Prof.'} - {c.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
 
-                <div>
-                  <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block mb-1">
-                    Lugar / Sede
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block mb-1">
+                      Ciclo de Oferta Formativa UNEFCO 2026
+                    </label>
+                    <select
+                      value={row.cicloIndex}
+                      onChange={e => {
+                        const idx = parseInt(e.target.value, 10);
+                        onUpdateMatrixRow(row.id, 'cicloIndex', idx);
+                        // Reset course index if cycle changes
+                        onUpdateMatrixRow(row.id, 'selectedCursoIndex', null);
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 cursor-pointer"
+                    >
+                      {OFERTA_FORMATIVA_UNEFCO_2026.map((c, idx) => (
+                        <option key={c.id} value={idx}>
+                          {c.id} | {c.cat === 'TACFI' ? '30d Est.' : '15d Prof.'} - {c.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase block mb-1">
+                      Lugar / Sede
+                    </label>
+                    <input
+                      type="text"
+                      value={row.lugar}
+                      onChange={e => onUpdateMatrixRow(row.id, 'lugar', e.target.value.toUpperCase())}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 uppercase focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Optional Exceptional Course Selector */}
+                <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(row.isExceptional)}
+                      onChange={e => {
+                        const checked = e.target.checked;
+                        onUpdateMatrixRow(row.id, 'isExceptional', checked);
+                        if (!checked) {
+                          onUpdateMatrixRow(row.id, 'selectedCursoIndex', null);
+                        } else {
+                          onUpdateMatrixRow(row.id, 'selectedCursoIndex', 0);
+                        }
+                      }}
+                      className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                    />
+                    <span>Asignar solo 1 curso individual (Caso Excepcional / Adicional)</span>
                   </label>
-                  <input
-                    type="text"
-                    value={row.lugar}
-                    onChange={e => onUpdateMatrixRow(row.id, 'lugar', e.target.value.toUpperCase())}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 uppercase focus:outline-none focus:border-indigo-600"
-                  />
+
+                  {row.isExceptional && selectedCicloObj && (
+                    <div className="w-full sm:w-auto flex items-center gap-2">
+                      <label className="text-[10px] text-amber-700 dark:text-amber-300 font-bold uppercase">
+                        Módulo Específico:
+                      </label>
+                      <select
+                        value={row.selectedCursoIndex ?? 0}
+                        onChange={e => onUpdateMatrixRow(row.id, 'selectedCursoIndex', parseInt(e.target.value, 10))}
+                        className="bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                      >
+                        {selectedCicloObj.cursos.map((cName, cIdx) => (
+                          <option key={cIdx} value={cIdx}>
+                            Curso #{cIdx + 1}: {cName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {totalCiclosCount < 5 && (
             <button

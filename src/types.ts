@@ -33,6 +33,8 @@ export interface SlotAsignacion {
   cursos: string[];
   lugar: string;
   modalidad: Modalidad;
+  isExceptional?: boolean;
+  selectedCursoIndex?: number | null;
 }
 
 export interface CursoProgramado {
@@ -58,6 +60,8 @@ export interface ProgramacionResultado {
   asignaciones: CursoProgramado[];
   slots: SlotAsignacion[];
   facilitador: string;
+  ci?: string;
+  ciComplemento?: string;
   tecnico: string;
   fechaInicioContrato: Date;
   limiteContrato: Date;
@@ -65,6 +69,9 @@ export interface ProgramacionResultado {
   modo: 'automatico' | 'manual';
   hashSeguridad?: string;
   idTransaccion?: string;
+  estado?: 'ACTIVO' | 'ANULADO';
+  motivoAnulacion?: string;
+  fechaAnulacion?: string;
 }
 
 export interface ManualCourseInput {
@@ -92,5 +99,15 @@ export interface UserProfile {
   departamento?: string;
   createdAt?: string;
   lastLogin?: string;
+}
+
+export interface FormDraftState {
+  facilitador: string;
+  ci: string;
+  ciComplemento: string;
+  selectedDateStr: string | null;
+  modo: 'automatico' | 'manual';
+  matrixRows: any[];
+  savedAt: string;
 }
 

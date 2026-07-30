@@ -140,6 +140,11 @@ export const EventoView: React.FC<EventoViewProps> = ({
             <span className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight mt-0.5">
               {resultado.facilitador || 'Lic. Por Asignar'}
             </span>
+            {resultado.ci && (
+              <span className="text-[10px] font-mono font-semibold text-slate-500 dark:text-slate-400 mt-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                CI: {resultado.ci}
+              </span>
+            )}
           </div>
 
           {/* Card 2: Distrito / Lugar */}

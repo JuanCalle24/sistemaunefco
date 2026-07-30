@@ -8,15 +8,20 @@ import {
   Users, 
   LogOut, 
   ShieldCheck, 
-  User 
+  UserCheck,
+  Lock,
+  User,
+  Sparkles
 } from 'lucide-react';
 import { DIAS_SEMANA_COMPLETOS } from '../utils/textUtils';
-import { UserProfile } from '../types';
+import { UserProfile, UserRole } from '../types';
 
 interface HeaderProps {
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   currentUser?: UserProfile | null;
+  activeRole?: UserRole;
+  onToggleActiveRole?: () => void;
   onOpenUserManagement?: () => void;
   onSignOut?: () => void;
 }
@@ -25,6 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
   isDarkMode,
   onToggleDarkMode,
   currentUser,
+  activeRole = 'tecnico',
+  onToggleActiveRole,
   onOpenUserManagement,
   onSignOut
 }) => {
@@ -38,6 +45,8 @@ export const Header: React.FC<HeaderProps> = ({
   const dayName = DIAS_SEMANA_COMPLETOS[now.getDay()];
   const dateStr = `${dayName}, ${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
   const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  const isAdminUser = currentUser?.role === 'admin';
 
   return (
     <header className="min-h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 py-3 shrink-0 sticky top-0 z-40 transition-colors shadow-2xs">
@@ -59,8 +68,42 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right Tools: Date/Clock, Dark Mode Toggle, SignOut */}
-      <div className="flex items-center gap-3 md:gap-4">
+      {/* Right Tools: Role Switcher, Date/Clock, Dark Mode Toggle, SignOut */}
+      <div className="flex items-center gap-2 md:gap-3">
+        {/* Active Role Switcher for Admin Users */}
+        {isAdminUser && onToggleActiveRole && (
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onToggleActiveRole}
+            type="button"
+            className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+              activeRole === 'admin'
+                ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300'
+                : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
+            }`}
+            title="Haz clic para alternar tu Rol Activo (Modo Admin / Modo Técnico)"
+          >
+            {activeRole === 'admin' ? (
+              <>
+                <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="hidden sm:inline uppercase text-[10px] tracking-wider">Rol: Admin</span>
+                <span className="text-[9px] bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded-md">
+                  Global
+                </span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span className="hidden sm:inline uppercase text-[10px] tracking-wider">Rol: Técnico</span>
+                <span className="text-[9px] bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md">
+                  Personal
+                </span>
+              </>
+            )}
+          </motion.button>
+        )}
+
         {/* Live Clock & Date */}
         <div className="hidden lg:flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
           <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold">
