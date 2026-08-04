@@ -438,12 +438,24 @@ export default function App() {
     setMatrixRows(matrixRows.filter(r => r.id !== id));
   };
 
-  const handleUpdateMatrixRow = (id: string, field: keyof MatrixRowItem, value: any) => {
-    setMatrixRows(
-      matrixRows.map(r => {
+  const handleUpdateMatrixRow = (
+    id: string,
+    fieldOrUpdates: keyof MatrixRowItem | Partial<MatrixRowItem>,
+    value?: any
+  ) => {
+    setMatrixRows(prevRows =>
+      prevRows.map(r => {
         if (r.id === id) {
-          const val = field === 'lugar' && typeof value === 'string' ? value.toUpperCase() : value;
-          return { ...r, [field]: val };
+          if (typeof fieldOrUpdates === 'object' && fieldOrUpdates !== null) {
+            const updates = { ...fieldOrUpdates };
+            if (typeof updates.lugar === 'string') {
+              updates.lugar = updates.lugar.toUpperCase();
+            }
+            return { ...r, ...updates };
+          }
+          const fieldKey = fieldOrUpdates as keyof MatrixRowItem;
+          const val = fieldKey === 'lugar' && typeof value === 'string' ? value.toUpperCase() : value;
+          return { ...r, [fieldKey]: val };
         }
         return r;
       })

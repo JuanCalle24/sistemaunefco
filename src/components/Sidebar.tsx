@@ -60,7 +60,7 @@ interface SidebarProps {
   matrixRows: MatrixRowItem[];
   onAddMatrixRow: () => void;
   onRemoveMatrixRow: (id: string) => void;
-  onUpdateMatrixRow: (id: string, field: keyof MatrixRowItem, value: any) => void;
+  onUpdateMatrixRow: (id: string, fieldOrUpdates: keyof MatrixRowItem | Partial<MatrixRowItem>, value?: any) => void;
   
   selectedDate: Date | null;
   onSelectDate: (d: Date) => void;

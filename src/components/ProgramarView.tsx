@@ -61,7 +61,7 @@ interface ProgramarViewProps {
   matrixRows: MatrixRowItem[];
   onAddMatrixRow: () => void;
   onRemoveMatrixRow: (id: string) => void;
-  onUpdateMatrixRow: (id: string, field: keyof MatrixRowItem, value: any) => void;
+  onUpdateMatrixRow: (id: string, fieldOrUpdates: keyof MatrixRowItem | Partial<MatrixRowItem>, value?: any) => void;
   
   selectedDate: Date | null;
   onSelectDate: (d: Date) => void;
@@ -360,8 +360,10 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                       value={row.cicloIndex}
                       onChange={e => {
                         const idx = parseInt(e.target.value, 10);
-                        onUpdateMatrixRow(row.id, 'cicloIndex', idx);
-                        onUpdateMatrixRow(row.id, 'selectedCursoIndex', row.isExceptional ? 0 : null);
+                        onUpdateMatrixRow(row.id, {
+                          cicloIndex: idx,
+                          selectedCursoIndex: row.isExceptional ? 0 : null
+                        });
                       }}
                       className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer"
                     >
@@ -394,12 +396,10 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                       checked={Boolean(row.isExceptional)}
                       onChange={e => {
                         const checked = e.target.checked;
-                        onUpdateMatrixRow(row.id, 'isExceptional', checked);
-                        if (!checked) {
-                          onUpdateMatrixRow(row.id, 'selectedCursoIndex', null);
-                        } else {
-                          onUpdateMatrixRow(row.id, 'selectedCursoIndex', 0);
-                        }
+                        onUpdateMatrixRow(row.id, {
+                          isExceptional: checked,
+                          selectedCursoIndex: checked ? 0 : null
+                        });
                       }}
                       className="rounded text-zinc-700 focus:ring-zinc-600 h-3.5 w-3.5 cursor-pointer"
                     />
