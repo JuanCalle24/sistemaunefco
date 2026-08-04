@@ -23,13 +23,13 @@ export const InactivityModal: React.FC<InactivityModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-zinc-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 15 }}
           transition={{ duration: 0.2 }}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-5"
+          className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-5"
         >
           <div className="flex items-center gap-3">
             <motion.div
@@ -40,10 +40,10 @@ export const InactivityModal: React.FC<InactivityModalProps> = ({
               <ShieldAlert className="w-7 h-7" />
             </motion.div>
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider font-display">
+              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider font-display">
                 Advertencia de Inactividad
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                 Protección de seguridad activa
               </p>
             </div>
@@ -68,9 +68,9 @@ export const InactivityModal: React.FC<InactivityModalProps> = ({
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={onExtendSession}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer font-display"
             >
-              <CheckCircle2 className="w-4 h-4 text-indigo-200" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-200" />
               <span>Extender Sesión (+15m)</span>
             </motion.button>
             <motion.button
@@ -78,7 +78,7 @@ export const InactivityModal: React.FC<InactivityModalProps> = ({
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={onLogoutNow}
-              className="bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/50 text-slate-700 dark:text-slate-300 hover:text-red-600 border border-slate-200 dark:border-slate-700 font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="bg-zinc-100 dark:bg-zinc-800 hover:bg-red-50 dark:hover:bg-red-950/50 text-zinc-700 dark:text-zinc-300 hover:text-red-600 border border-zinc-200 dark:border-zinc-700 font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer font-display"
             >
               <LogOut className="w-4 h-4" />
               <span>Salir Ahora</span>

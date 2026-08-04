@@ -37,34 +37,34 @@ export const CicloCard: React.FC<CicloCardProps> = ({
   hoy.setHours(0, 0, 0, 0);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-sm overflow-hidden shadow-2xs">
+    <div className="glass-card border border-white/60 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
       {/* Card Header */}
-      <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-5 py-4 border-b border-slate-200/60 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
-            className="w-2.5 h-7 rounded-2xs inline-block"
+            className="w-2.5 h-8 rounded-full inline-block shrink-0 shadow-xs"
             style={{ backgroundColor: catColor }}
           />
           <div>
-            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
               <span>{slot.cicloId}</span>
-              <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-2xs">
+              <span className="text-[10px] font-extrabold text-[#4648d4] dark:text-[#c0c1ff] bg-[#4648d4]/10 dark:bg-[#4648d4]/20 border border-[#4648d4]/30 px-2.5 py-0.5 rounded-full">
                 Asignación #{index + 1}
               </span>
             </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold mt-0.5">
+            <p className="text-xs text-slate-700 dark:text-slate-200 font-bold mt-0.5">
               {slot.cicloNombre}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 text-xs">
-          <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-2xs font-semibold text-slate-700 dark:text-slate-300">
-            <MapPin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-full font-bold text-slate-700 dark:text-slate-300 shadow-2xs">
+            <MapPin className="w-3.5 h-3.5 text-[#4648d4] dark:text-[#c0c1ff]" />
             <span>{slot.lugar}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-2xs font-semibold text-slate-700 dark:text-slate-300">
+          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-full font-bold text-slate-700 dark:text-slate-300 shadow-2xs">
             {slot.modalidad === 'Presencial' && <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
             {slot.modalidad === 'Semipresencial' && <Monitor className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
             {slot.modalidad === 'Virtual' && <Globe className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />}
@@ -72,7 +72,7 @@ export const CicloCard: React.FC<CicloCardProps> = ({
           </div>
 
           <span
-            className="px-2.5 py-1 rounded-2xs text-[10px] font-bold text-white uppercase tracking-wider shadow-2xs"
+            className="px-3 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-wider shadow-sm"
             style={{ backgroundColor: catColor }}
           >
             {slot.cat === 'TACFI' ? '30 Días / Curso' : '15 Días / Curso'}

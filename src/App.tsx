@@ -34,6 +34,8 @@ import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, 
 
 import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser } from './utils/authService';
 import { saveScheduleToFirestore, subscribeToSchedules } from './services/scheduleService';
+import { CorrelativoRecord, subscribeToCorrelativos } from './services/correlativoService';
+import { CorrelativosModule } from './components/CorrelativosModule';
 
 export default function App() {
   // Auth State
@@ -306,6 +308,15 @@ export default function App() {
       if (remoteSchedules && remoteSchedules.length > 0) {
         setHistory(remoteSchedules);
       }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time listener for Correlativos
+  const [correlativoRecords, setCorrelativoRecords] = useState<CorrelativoRecord[]>([]);
+  useEffect(() => {
+    const unsubscribe = subscribeToCorrelativos((records) => {
+      setCorrelativoRecords(records);
     });
     return () => unsubscribe();
   }, []);
@@ -740,7 +751,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans antialiased transition-colors ${isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen flex flex-col font-sans antialiased relative overflow-x-hidden transition-colors ${isDarkMode ? 'dark bg-[#1e1f21] text-zinc-100' : 'bg-[#f8f9fa] text-zinc-900'}`}>
       <Header
         isDarkMode={isDarkMode}
         onToggleDarkMode={handleToggleDarkMode}
@@ -807,23 +818,25 @@ export default function App() {
         {/* Main Dashboard Panel */}
         <main className="flex-1 p-6 md:p-8 overflow-y-auto space-y-6">
           {/* Header Section */}
-          <div className="flex flex-wrap justify-between items-end gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex flex-wrap justify-between items-end gap-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
             <div>
-              <nav className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-2 tracking-wider">
-                <span>Gestión Académica</span>
-                <span className="text-slate-400 dark:text-slate-600">›</span>
-                <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+              <nav className="text-[11px] uppercase font-black text-zinc-500 dark:text-zinc-400 mb-1 flex items-center gap-2 tracking-wider">
+                <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">Gestión Académica</span>
+                <span className="text-zinc-300 dark:text-zinc-700">/</span>
+                <span className="text-zinc-700 dark:text-zinc-200 font-bold">
                   {selectedView === 'programar' && 'Programación y Parámetros'}
                   {selectedView === 'eventos' && 'Evento y Cursos Programados'}
                   {selectedView === 'dashboard' && 'Métricas e Indicadores'}
                   {selectedView === 'historial' && 'Historial de Programaciones'}
+                  {selectedView === 'correlativos' && 'Correlativos UNEFCO'}
                 </span>
               </nav>
-              <h1 className="font-display text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+              <h1 className="font-display text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
                 {selectedView === 'programar' && 'Programar Cronograma'}
                 {selectedView === 'eventos' && 'Cursos del Evento'}
                 {selectedView === 'dashboard' && 'Dashboard y Métricas'}
                 {selectedView === 'historial' && 'Historial Registrado'}
+                {selectedView === 'correlativos' && 'Correlativos UNEFCO'}
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -831,20 +844,20 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleClearAll}
-                  className="bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-950/50 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 hover:border-red-300 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  className="bg-zinc-100 hover:bg-red-50 dark:bg-zinc-800 dark:hover:bg-red-950/50 text-zinc-700 dark:text-zinc-300 hover:text-red-600 dark:hover:text-red-400 border border-zinc-200 dark:border-zinc-700 hover:border-red-300 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                   title="Reiniciar y crear nueva programación"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Reiniciar Programación</span>
                 </button>
               )}
-              <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-md text-xs gap-3 shadow-2xs">
+              <div className="flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 rounded-md text-xs gap-3 shadow-2xs">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Ejecución Activa</span>
+                  <span className="text-zinc-600 dark:text-zinc-400 font-medium">Ejecución Activa</span>
                 </div>
-                <div className="h-3.5 w-px bg-slate-200 dark:bg-slate-700"></div>
-                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">UNEFCO La Paz</span>
+                <div className="h-3.5 w-px bg-zinc-200 dark:bg-zinc-700"></div>
+                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">UNEFCO La Paz</span>
               </div>
             </div>
           </div>
@@ -909,32 +922,34 @@ export default function App() {
 
           {selectedView === 'dashboard' && (
             <div className="animate-in fade-in duration-200">
-              {programacionResult ? (
-                <DashboardMetrics 
-                  resultado={programacionResult} 
-                  isDarkMode={isDarkMode} 
-                  activeRole={activeRole}
-                  currentUser={currentUser}
-                  history={history}
-                />
-              ) : (
-                <div className="min-h-[350px] flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
-                  <LayoutDashboard className="w-12 h-12 text-slate-400 mb-3" />
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">
-                    No hay datos de Dashboard disponibles
-                  </h3>
-                  <p className="text-xs text-slate-500 max-w-sm mb-4">
-                    Genere un cronograma primero para visualizar las métricas y la tasa de cumplimiento.
-                  </p>
-                  <button
-                    onClick={() => setSelectedView('programar')}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl uppercase tracking-wider"
-                  >
-                    Ir a Programar
-                  </button>
-                </div>
-              )}
+              <DashboardMetrics 
+                resultado={programacionResult} 
+                isDarkMode={isDarkMode} 
+                activeRole={activeRole}
+                currentUser={currentUser}
+                history={history}
+                correlativoRecords={correlativoRecords}
+                onGoToProgramar={(nombre, ciNum) => {
+                  if (nombre) setFacilitador(nombre);
+                  if (ciNum) setCi(ciNum);
+                  setSelectedView('programar');
+                }}
+              />
             </div>
+          )}
+
+          {selectedView === 'correlativos' && (
+            <CorrelativosModule
+              currentUser={currentUser}
+              activeRole={activeRole}
+              tecnicoName={tecnico}
+              schedulesHistory={history}
+              onPreloadFacilitadorForSchedule={(nombre, cNum, cComp) => {
+                setFacilitador(nombre);
+                setCi(cNum);
+                setSelectedView('programar');
+              }}
+            />
           )}
         </main>
       </div>
@@ -947,12 +962,12 @@ export default function App() {
       />
 
       {/* Geometric Balance Footer Status Bar */}
-      <footer className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 flex items-center px-6 md:px-8 justify-between text-[10px] font-bold tracking-widest uppercase h-10 shrink-0 border-t border-slate-200 dark:border-slate-800 transition-colors">
+      <footer className="bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 flex items-center px-6 md:px-8 justify-between text-[10px] font-bold tracking-widest uppercase h-10 shrink-0 border-t border-zinc-200 dark:border-zinc-800 transition-colors">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-slate-800 dark:text-slate-200">Fase Actual: Control Total de Programación Académica</span>
+          <span className="text-zinc-800 dark:text-zinc-200">Fase Actual: Control Total de Programación Académica</span>
         </div>
-        <div className="hidden sm:flex items-center gap-4 text-slate-500 dark:text-slate-400">
+        <div className="hidden sm:flex items-center gap-4 text-zinc-500 dark:text-zinc-400">
           <span>UNEFCO La Paz</span>
           <span>•</span>
           <span>Modelo de Contrato: 100 Días</span>

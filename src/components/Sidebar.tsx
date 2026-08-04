@@ -27,7 +27,8 @@ import {
   BookOpen,
   ShieldCheck,
   CheckCircle2,
-  Lock
+  Lock,
+  Stamp
 } from 'lucide-react';
 import { OFERTA_FORMATIVA_UNEFCO_2026 } from '../data/ofertaFormativa';
 import { DatePickerPopup } from './DatePickerPopup';
@@ -42,7 +43,7 @@ interface MatrixRowItem {
   modalidad: Modalidad;
 }
 
-export type MainViewOption = 'programar' | 'eventos' | 'dashboard' | 'historial';
+export type MainViewOption = 'programar' | 'eventos' | 'dashboard' | 'historial' | 'correlativos';
 
 interface SidebarProps {
   modo: 'automatico' | 'manual';
@@ -187,40 +188,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="relative z-30 flex shrink-0 h-full">
       {/* ------------------------------------------------------------- */}
-      {/* SIE UNEFCO STYLE LEFT NAVIGATION MENU                          */}
+      {/* ENTERPRISE ACADEMIC WORKSPACE SIDEBAR (Monday.com / Canvas LMS) */}
       {/* ------------------------------------------------------------- */}
       <div 
-        className={`bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full transition-all duration-300 z-40 select-none shadow-xs ${
-          isCollapsed ? 'w-16' : 'w-72 md:w-80'
+        className={`bg-white dark:bg-[#1e1f21] text-zinc-800 dark:text-zinc-200 border-r border-zinc-200 dark:border-[#2e2f33] flex flex-col h-full transition-all duration-200 z-40 select-none ${
+          isCollapsed ? 'w-14' : 'w-64 md:w-72'
         }`}
       >
-        {/* Header User Profile Card (SIE Style) */}
-        <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
+        {/* Header User Profile Card */}
+        <div className="p-3 border-b border-zinc-200 dark:border-[#2e2f33] bg-zinc-50/50 dark:bg-[#252628] flex items-center justify-between">
           {!isCollapsed ? (
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">
+              <div className="w-8 h-8 rounded bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center shrink-0">
                 {currentUser?.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U'}
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider truncate flex items-center gap-1">
-                  <span>Sede La Paz</span>
-                  {isAdmin ? (
-                    <span className="text-[9px] bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-1 rounded font-black">
+                <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate flex items-center gap-1">
+                  <span>UNEFCO La Paz</span>
+                  {isAdmin && (
+                    <span className="text-[9px] bg-zinc-200 dark:bg-[#333438] text-zinc-700 dark:text-zinc-300 px-1 py-0.2 rounded font-mono">
                       ADMIN
-                    </span>
-                  ) : (
-                    <span className="text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-1 rounded font-black">
-                      TÉCNICO
                     </span>
                   )}
                 </div>
-                <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                   {currentUser?.displayName || 'Usuario UNEFCO'}
                 </div>
               </div>
             </div>
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-sm mx-auto shadow-xs">
+            <div className="w-8 h-8 rounded bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center mx-auto">
               {currentUser?.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U'}
             </div>
           )}
@@ -228,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {!isCollapsed && (
             <button
               onClick={toggleCollapse}
-              className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-[#333438] rounded transition-colors cursor-pointer"
               title="Colapsar Menú"
             >
               <PanelLeftClose className="w-4 h-4" />
@@ -237,16 +234,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Scrollable Navigation Area */}
-        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {/* Collapsed Rail Icons View */}
           {isCollapsed ? (
-            <div className="flex flex-col items-center gap-2.5">
+            <div className="flex flex-col items-center gap-2">
               <button
                 onClick={toggleCollapse}
-                className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 hover:text-white dark:hover:text-white flex items-center justify-center transition-colors mb-2 cursor-pointer shadow-2xs"
-                title="Expandir Menú de Opciones"
+                className="w-9 h-9 rounded bg-zinc-100 dark:bg-[#252628] hover:bg-zinc-200 dark:hover:bg-[#2d2e32] text-zinc-700 dark:text-zinc-200 flex items-center justify-center transition-colors mb-1 cursor-pointer"
+                title="Expandir Menú"
               >
-                <PanelLeftOpen className="w-5 h-5" />
+                <PanelLeftOpen className="w-4 h-4" />
               </button>
 
               <button
@@ -254,280 +251,230 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onSelectView('programar');
                   setIsCollapsed(false);
                 }}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer relative ${
                   selectedView === 'programar'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                    : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-zinc-200 dark:bg-[#2d2e32] text-zinc-900 dark:text-white font-bold'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
                 }`}
                 title="Parámetros de Programación"
               >
-                <CalendarDays className="w-5 h-5" />
+                <CalendarDays className="w-4 h-4" />
                 {totalCiclosCount > 0 && (
-                  <span className="absolute -top-1 -right-1 text-[9px] font-black bg-indigo-500 text-white w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-slate-900">
+                  <span className="absolute -top-1 -right-1 text-[9px] font-mono bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900 w-3.5 h-3.5 rounded-full flex items-center justify-center">
                     {totalCiclosCount}
                   </span>
                 )}
               </button>
 
               <button
-                onClick={() => {
-                  onSelectView('eventos');
-                }}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                onClick={() => onSelectView('eventos')}
+                className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer relative ${
                   selectedView === 'eventos'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                    : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-zinc-200 dark:bg-[#2d2e32] text-zinc-900 dark:text-white'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
                 }`}
-                title="Eventos / Cursos Programados"
+                title="Eventos Programados"
               >
-                <BookOpen className="w-5 h-5" />
-                {hasResult && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white dark:border-slate-900" />
-                )}
+                <BookOpen className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => onSelectView('correlativos')}
+                className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer ${
+                  selectedView === 'correlativos'
+                    ? 'bg-zinc-200 dark:bg-[#2d2e32] text-zinc-900 dark:text-white'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
+                }`}
+                title="Correlativos"
+              >
+                <Stamp className="w-4 h-4" />
               </button>
 
               <button
                 onClick={() => onSelectView('dashboard')}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer ${
                   selectedView === 'dashboard'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                    : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-zinc-200 dark:bg-[#2d2e32] text-zinc-900 dark:text-white'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
                 }`}
-                title="Dashboard de Métricas"
+                title="Dashboard"
               >
-                <LayoutDashboard className="w-5 h-5" />
+                <LayoutDashboard className="w-4 h-4" />
               </button>
 
               {onOpenHistory && (
                 <button
                   onClick={onOpenHistory}
-                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-950 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center justify-center transition-all cursor-pointer"
-                  title="Historial de Cronogramas"
+                  className="w-9 h-9 rounded text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center justify-center transition-colors cursor-pointer"
+                  title="Historial"
                 >
-                  <History className="w-5 h-5" />
-                </button>
-              )}
-
-              {onOpenShare && (
-                <button
-                  onClick={onOpenShare}
-                  disabled={pdfDisabled}
-                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/70 text-emerald-600 dark:text-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-emerald-100 dark:hover:bg-emerald-950 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center justify-center transition-all cursor-pointer"
-                  title="Notificar por WhatsApp / Email"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              )}
-
-              {onGeneratePDF && (
-                <button
-                  onClick={onGeneratePDF}
-                  disabled={pdfDisabled}
-                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/70 text-indigo-600 dark:text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-indigo-100 dark:hover:bg-indigo-950 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center justify-center transition-all cursor-pointer"
-                  title="Exportar PDF"
-                >
-                  <FileDown className="w-5 h-5" />
-                </button>
-              )}
-
-              {/* ADMIN ONLY CONFIG BUTTONS IN RAIL */}
-              {isAdmin && onOpenUserManagement && (
-                <button
-                  onClick={onOpenUserManagement}
-                  className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900 border border-purple-300 dark:border-purple-800/50 flex items-center justify-center transition-all cursor-pointer"
-                  title="Gestión de Técnicos (Solo Admin)"
-                >
-                  <Users className="w-5 h-5" />
-                </button>
-              )}
-
-              {isAdmin && (
-                <button
-                  onClick={onOpenAdminModal}
-                  className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900 border border-purple-300 dark:border-purple-800/50 flex items-center justify-center transition-all cursor-pointer"
-                  title="Configuración de Feriados y Oferta (Solo Admin)"
-                >
-                  <Settings2 className="w-5 h-5" />
+                  <History className="w-4 h-4" />
                 </button>
               )}
             </div>
           ) : (
-            /* Expanded SIE UNEFCO Style Navigation Menu */
+            /* Expanded Navigation */
             <>
-              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 pt-2 pb-1">
-                Menú de Opciones
+              <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2 pt-2 pb-1">
+                Workspace
               </div>
 
-              {/* ACCORDION 1: PROGRAMACIÓN */}
-              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
+              {/* Accordion Programación */}
+              <div className="rounded border border-zinc-200 dark:border-[#2e2f33] overflow-hidden bg-zinc-50/50 dark:bg-[#252628]/50">
                 <button
                   onClick={() => setOpenProgramacion(!openProgramacion)}
-                  className="w-full px-3 py-2.5 flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-[#2d2e32] transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <CalendarDays className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    <span>Programación</span>
+                    <CalendarDays className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                    <span>Programación Académica</span>
                   </div>
                   {openProgramacion ? (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                    <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
                   ) : (
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
                   )}
                 </button>
 
-                <AnimatePresence initial={false}>
-                  {openProgramacion && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="bg-white dark:bg-slate-950/60 border-t border-slate-200 dark:border-slate-800/60 divide-y divide-slate-100 dark:divide-slate-800/40"
+                {openProgramacion && (
+                  <div className="bg-white dark:bg-[#1e1f21] border-t border-zinc-200 dark:border-[#2e2f33] divide-y divide-zinc-100 dark:divide-[#2a2b2e]">
+                    <button
+                      onClick={() => onSelectView('programar')}
+                      className={`w-full px-3.5 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                        selectedView === 'programar'
+                          ? 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-900 dark:text-white border-l-2 border-zinc-700 dark:border-zinc-300 font-semibold'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#252628]'
+                      }`}
                     >
-                      {/* Sub-item: Parámetros de Programación */}
-                      <button
-                        onClick={() => onSelectView('programar')}
-                        className={`w-full px-4 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                          selectedView === 'programar'
-                            ? 'bg-indigo-50 dark:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 border-l-2 border-indigo-600 dark:border-indigo-500 font-bold'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Sliders className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                          <span>Generar Cronograma</span>
-                        </div>
-                        {totalCiclosCount > 0 && (
-                          <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.2 rounded border border-indigo-200 dark:border-indigo-500/40">
-                            {totalCiclosCount} Ciclos
-                          </span>
-                        )}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <Sliders className="w-3.5 h-3.5" />
+                        <span>Generar Cronograma</span>
+                      </div>
+                      {totalCiclosCount > 0 && (
+                        <span className="text-[10px] font-mono bg-zinc-200 dark:bg-[#333438] text-zinc-800 dark:text-zinc-200 px-1.5 py-0.2 rounded">
+                          {totalCiclosCount}
+                        </span>
+                      )}
+                    </button>
 
-                      {/* Sub-item: Eventos / Cursos Programados */}
-                      <button
-                        onClick={() => onSelectView('eventos')}
-                        className={`w-full px-4 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                          selectedView === 'eventos'
-                            ? 'bg-indigo-50 dark:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 border-l-2 border-indigo-600 dark:border-indigo-500 font-bold'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                          <span>Cursos Programados</span>
-                        </div>
-                        {hasResult && (
-                          <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-200 dark:border-emerald-500/30 uppercase">
-                            Activo
-                          </span>
-                        )}
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    <button
+                      onClick={() => onSelectView('eventos')}
+                      className={`w-full px-3.5 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                        selectedView === 'eventos'
+                          ? 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-900 dark:text-white border-l-2 border-zinc-700 dark:border-zinc-300 font-semibold'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#252628]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Cursos Programados</span>
+                      </div>
+                      {hasResult && (
+                        <span className="text-[9px] uppercase bg-zinc-200 dark:bg-[#333438] text-zinc-700 dark:text-zinc-300 px-1.5 py-0.2 rounded font-mono">
+                          Activo
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* MENU ITEM 2: DASHBOARD & METRICS */}
+              {/* Menu Items */}
               <button
-                onClick={() => onSelectView('dashboard')}
-                className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                  selectedView === 'dashboard'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
+                onClick={() => onSelectView('correlativos')}
+                className={`w-full px-3 py-2 rounded text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                  selectedView === 'correlativos'
+                    ? 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-900 dark:text-white font-semibold'
+                    : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628]'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <LayoutDashboard className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <div className="flex items-center gap-2">
+                  <Stamp className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                  <span>Correlativos UNEFCO</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => onSelectView('dashboard')}
+                className={`w-full px-3 py-2 rounded text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                  selectedView === 'dashboard'
+                    ? 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-900 dark:text-white font-semibold'
+                    : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628]'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <LayoutDashboard className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                   <span>Dashboard & Métricas</span>
                 </div>
               </button>
 
-              {/* MENU ITEM 3: HISTORIAL DE CRONOGRAMAS */}
               {onOpenHistory && (
                 <button
                   onClick={onOpenHistory}
-                  className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white flex items-center justify-between transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <History className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    <span>Historial de Cronogramas</span>
-                  </div>
+                  <History className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                  <span>Historial de Cronogramas</span>
                 </button>
               )}
 
-              {/* MENU ITEM 4: NOTIFICAR / COMPARTIR */}
               {onOpenShare && (
                 <button
                   onClick={onOpenShare}
                   disabled={pdfDisabled}
-                  className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-between transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] disabled:opacity-30 flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Send className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Notificar & Compartir</span>
-                  </div>
+                  <Send className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                  <span>Notificar & Compartir</span>
                 </button>
               )}
 
-              {/* MENU ITEM 5: EXPORTAR INFORME PDF */}
               {onGeneratePDF && (
                 <button
                   onClick={onGeneratePDF}
                   disabled={pdfDisabled}
-                  className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-between transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] disabled:opacity-30 flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <FileDown className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    <span>Exportar Informe PDF</span>
-                  </div>
+                  <FileDown className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                  <span>Exportar PDF</span>
                 </button>
               )}
 
-              <div className="pt-3 pb-1 border-t border-slate-200 dark:border-slate-800/80 my-2">
-                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-1">
-                  Administración de Sistema
+              <div className="pt-2 border-t border-zinc-200 dark:border-[#2e2f33] mt-2">
+                <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2 mb-1">
+                  Administración
                 </div>
 
-                {/* MENU ITEM 6: GESTIÓN DE TÉCNICOS (ADMIN ONLY) */}
                 {isAdmin ? (
                   onOpenUserManagement && (
                     <button
                       onClick={onOpenUserManagement}
-                      className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800/40 flex items-center justify-between transition-colors cursor-pointer my-1"
+                      className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center justify-between transition-colors cursor-pointer my-0.5"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                         <span>Gestión de Técnicos</span>
                       </div>
-                      <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
                     </button>
                   )
                 ) : (
-                  <div className="px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-2 font-medium">
-                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0" />
-                    <span>Técnicos (Acceso Limitado)</span>
+                  <div className="px-3 py-1.5 text-xs text-zinc-400 flex items-center gap-2">
+                    <Lock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                    <span>Técnicos (Limitado)</span>
                   </div>
                 )}
 
-                {/* MENU ITEM 7: CONFIGURACIÓN FERIADOS Y OFERTA (ADMIN ONLY) */}
-                {isAdmin ? (
+                {isAdmin && (
                   <button
                     onClick={onOpenAdminModal}
-                    className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 flex items-center justify-between transition-colors cursor-pointer my-1"
+                    className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center justify-between transition-colors cursor-pointer my-0.5"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <Settings2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span>Feriados & Oferta Académica</span>
+                    <div className="flex items-center gap-2">
+                      <Settings2 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                      <span>Feriados & Oferta</span>
                     </div>
-                    <span className="text-[9px] font-bold bg-purple-100 dark:bg-purple-900/80 text-purple-800 dark:text-purple-300 px-1.5 py-0.2 rounded uppercase">
-                      Admin
-                    </span>
                   </button>
-                ) : (
-                  <div className="px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-2 font-medium" title="Solo disponible para Administradores">
-                    <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0" />
-                    <span>Config. Feriados (Solo Admin)</span>
-                  </div>
                 )}
               </div>
             </>

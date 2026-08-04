@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar, 
   Clock, 
   Sun, 
   Moon, 
-  Users, 
   LogOut, 
   ShieldCheck, 
-  UserCheck,
-  Lock,
-  User,
-  Sparkles
+  UserCheck
 } from 'lucide-react';
 import { DIAS_SEMANA_COMPLETOS } from '../utils/textUtils';
 import { UserProfile, UserRole } from '../types';
@@ -46,130 +41,89 @@ export const Header: React.FC<HeaderProps> = ({
   const dateStr = `${dayName}, ${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
   const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  // Allow role switching if user is admin or if in default dev/demo mode
   const canToggleRole = !currentUser || currentUser.role === 'admin';
 
   return (
-    <header className="min-h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 py-3 shrink-0 sticky top-0 z-40 transition-colors shadow-2xs">
+    <header className="h-12 bg-white dark:bg-[#1e1f21] border-b border-zinc-200 dark:border-[#2e2f33] flex items-center justify-between px-4 shrink-0 sticky top-0 z-40 transition-colors">
       {/* Brand & Subtitle */}
-      <div className="flex items-center gap-3">
-        <motion.div 
-          whileHover={{ scale: 1.05, rotate: 3 }}
-          className="w-9 h-9 bg-indigo-600 dark:bg-indigo-500 rounded-lg flex items-center justify-center text-white font-bold text-lg font-display shadow-xs cursor-pointer"
-        >
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 rounded font-bold text-xs flex items-center justify-center shrink-0">
           U
-        </motion.div>
-        <div>
-          <h1 className="font-display text-base md:text-lg font-bold text-slate-900 dark:text-white leading-tight flex items-center gap-2">
-            UNEFCO <span className="text-xs bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-md tracking-normal">La Paz</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+            UNEFCO <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">| La Paz</span>
           </h1>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
-            Programación Académica
-          </p>
+          <span className="hidden md:inline text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
+            Sistema Académico 2026
+          </span>
         </div>
       </div>
 
-      {/* Right Tools: Role Switcher, Date/Clock, Dark Mode Toggle, SignOut */}
-      <div className="flex items-center gap-2 md:gap-3">
-        {/* Active Role Switcher (Opción A: Administrador vs. Técnico) */}
+      {/* Right Tools */}
+      <div className="flex items-center gap-2">
+        {/* Active Role Switcher */}
         {canToggleRole && onToggleActiveRole && (
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+          <button
             onClick={onToggleActiveRole}
             type="button"
-            className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+            className={`px-2.5 py-1 rounded border flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
               activeRole === 'admin'
-                ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300'
-                : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
+                ? 'bg-zinc-100 dark:bg-[#2a2b2e] border-zinc-300 dark:border-[#3a3b40] text-zinc-800 dark:text-zinc-200'
+                : 'bg-zinc-50 dark:bg-[#252628] border-zinc-200 dark:border-[#333438] text-zinc-700 dark:text-zinc-300'
             }`}
-            title="Haz clic para alternar tu Rol Activo (Modo Administrador / Modo Técnico de Seguimiento)"
+            title="Alternar Rol Activo"
           >
             {activeRole === 'admin' ? (
               <>
-                <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span className="hidden sm:inline font-bold">Modo: Administrador</span>
-                <span className="text-[9px] font-extrabold bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                  Global
-                </span>
+                <ShieldCheck className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
+                <span className="hidden sm:inline">Modo Admin</span>
               </>
             ) : (
               <>
-                <UserCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span className="hidden sm:inline font-bold">Modo: Técnico de Seguimiento</span>
-                <span className="text-[9px] font-extrabold bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                  Personal
-                </span>
+                <UserCheck className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
+                <span className="hidden sm:inline">Modo Técnico</span>
               </>
             )}
-          </motion.button>
+          </button>
         )}
 
-        {/* Live Clock & Date */}
-        <div className="hidden lg:flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
-          <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{dateStr}</span>
-          </div>
-          <div className="h-3.5 w-px bg-slate-300 dark:bg-slate-700" />
-          <div className="flex items-center gap-1.5 font-mono text-slate-600 dark:text-slate-400 font-bold">
-            <Clock className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-            <span>{timeStr}</span>
-          </div>
+        {/* Live Clock */}
+        <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded text-xs text-zinc-500 dark:text-zinc-400 border border-transparent">
+          <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+          <span>{dateStr}</span>
+          <span className="text-zinc-300 dark:text-zinc-700">•</span>
+          <Clock className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="font-mono text-zinc-600 dark:text-zinc-300">{timeStr}</span>
         </div>
 
         {/* Dark Mode Toggle */}
-        <motion.button
+        <button
           type="button"
-          whileHover={{ scale: 1.1, rotate: 15 }}
-          whileTap={{ scale: 0.9 }}
           onClick={onToggleDarkMode}
-          className="p-2.5 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer shadow-2xs"
-          title={isDarkMode ? "Cambiar a Modo Claro" : "Cambiar a Modo Nocturno"}
+          className="p-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#2d2e32] rounded border border-zinc-200 dark:border-[#333438] transition-colors cursor-pointer"
+          title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
         >
-          <AnimatePresence mode="wait">
-            {isDarkMode ? (
-              <motion.div
-                key="sun"
-                initial={{ scale: 0, rotate: -90 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0, rotate: 90 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Sun className="w-4 h-4 text-amber-400" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="moon"
-                initial={{ scale: 0, rotate: 90 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0, rotate: -90 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Moon className="w-4 h-4 text-indigo-600" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
+          {isDarkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+        </button>
 
         {/* Sign Out Button */}
         {onSignOut && (
-          <motion.button
+          <button
             type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={onSignOut}
-            className="p-2.5 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 bg-slate-50 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/50 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+            className="p-1.5 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-[#2d2e32] rounded border border-zinc-200 dark:border-[#333438] transition-colors cursor-pointer flex items-center gap-1 text-xs"
             title="Cerrar Sesión"
           >
-            <LogOut className="w-4 h-4 text-slate-500 hover:text-red-600" />
+            <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Salir</span>
-          </motion.button>
+          </button>
         )}
       </div>
     </header>
   );
 };
+
 
 
 

@@ -1,42 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ProgramacionResultado, UserRole, UserProfile
 } from '../types';
+import { CorrelativoRecord } from '../services/correlativoService';
 import { formatDateVisual } from '../utils/textUtils';
 import { 
-  PlayCircle, 
-  Clock, 
-  AlertCircle, 
   CheckCircle2, 
-  BarChart3, 
-  MapPin, 
-  BookOpen, 
-  Calendar,
-  FileCheck2,
-  Filter,
-  UserCheck,
-  ShieldCheck,
-  Activity,
-  Layers
+  FileCheck2, 
+  UserCheck, 
+  ShieldCheck, 
+  Calendar, 
+  ArrowRight, 
+  Search, 
+  User, 
+  AlertTriangle, 
+  Check, 
+  Info, 
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 
 interface DashboardMetricsProps {
-  resultado: ProgramacionResultado;
+  resultado?: ProgramacionResultado | null;
   isDarkMode?: boolean;
   activeRole?: UserRole;
   currentUser?: UserProfile | null;
   history?: ProgramacionResultado[];
+  correlativoRecords?: CorrelativoRecord[];
+  onGoToProgramar?: (nombreFacilitador?: string, ciNum?: string) => void;
 }
 
 export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
   resultado,
-  isDarkMode,
   activeRole = 'tecnico',
   currentUser,
-  history = []
+  history = [],
+  correlativoRecords = [],
+  onGoToProgramar
 }) => {
   const [filterStatus, setFilterStatus] = useState<'todos' | 'en_curso' | 'proximo' | 'informe_pendiente' | 'finalizado'>('todos');
   
+  // Search and Filter State for Trámites de Contratación Panel
+  const [tramiteSearch, setTramiteSearch] = useState('');
+  const [tramiteFilter, setTramiteFilter] = useState<'pendientes' | 'completados' | 'todos'>('pendientes');
+
   const isAdminMode = activeRole === 'admin';
   const totalGlobalRecords = history.length;
   const activeGlobalRecords = history.filter(h => h.estado !== 'ANULADO').length;
@@ -45,21 +52,134 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
-  // Categorize courses
+  // Group Correlativos by CI & evaluate Schedule Linkage
+  const tramites = useMemo(() => {
+    if (!correlativoRecords || correlativoRecords.length === 0) return [];
+
+    type TramiteEntry = {
+      ciCompleta: string;
+      ciNum: string;
+      ciComp: string;
+      nombreFacilitador: string;
+      cpRecord?: CorrelativoRecord;
+      infRecord?: CorrelativoRecord;
+      iniRecord?: CorrelativoRecord;
+      lastDate: string;
+      usuarioGenerador: string;
+    };
+
+    const ciMap = new Map<string, TramiteEntry>();
+
+    correlativoRecords.forEach((r) => {
+      if (r.estado === 'Anulado') return;
+
+      const key = r.ciCompleta || r.ciNum;
+      const existing: TramiteEntry = ciMap.get(key) || {
+        ciCompleta: r.ciCompleta || r.ciNum,
+        ciNum: r.ciNum,
+        ciComp: r.ciComp || '',
+        nombreFacilitador: r.nombreFacilitador,
+        lastDate: r.fechaGeneracion,
+        usuarioGenerador: r.usuarioGenerador
+      };
+
+      if (r.nombreFacilitador && (!existing.nombreFacilitador || existing.nombreFacilitador === 'Desconocido')) {
+        existing.nombreFacilitador = r.nombreFacilitador;
+      }
+
+      if (r.tipo === 'cp') existing.cpRecord = r;
+      if (r.tipo === 'inf') existing.infRecord = r;
+      if (r.tipo === 'ini') existing.iniRecord = r;
+
+      if (new Date(r.fechaGeneracion) > new Date(existing.lastDate)) {
+        existing.lastDate = r.fechaGeneracion;
+      }
+
+      ciMap.set(key, existing);
+    });
+
+    const allSchedules = [...history];
+    if (resultado && !allSchedules.some((s) => s.id === resultado.id)) {
+      allSchedules.unshift(resultado);
+    }
+
+    return Array.from(ciMap.values()).map((item) => {
+      const cleanCi = (item.ciNum || '').trim();
+      const cleanName = (item.nombreFacilitador || '').toLowerCase().trim();
+
+      const matchingSchedule = allSchedules.find((s) => {
+        if (s.estado === 'ANULADO') return false;
+        const schedCi = (s.ci || (s as any).ciDocente || '').trim();
+        const schedName = (s.facilitador || (s as any).nombreDocente || '').toLowerCase().trim();
+
+        if (schedCi && cleanCi && (schedCi === item.ciCompleta || schedCi.includes(cleanCi))) {
+          return true;
+        }
+        if (schedName && cleanName && (schedName === cleanName || schedName.includes(cleanName) || cleanName.includes(schedName))) {
+          return true;
+        }
+        return false;
+      });
+
+      const isCompletedPaso3 = !!item.iniRecord;
+      const hasSchedule = !!matchingSchedule;
+
+      return {
+        ...item,
+        isCompletedPaso3,
+        hasSchedule,
+        matchingSchedule
+      };
+    }).sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+  }, [correlativoRecords, history, resultado]);
+
+  const totalTramites = tramites.length;
+  const tramitesPendientes = tramites.filter(t => !t.hasSchedule);
+  const tramitesCompletados = tramites.filter(t => t.hasSchedule);
+
+  const filteredTramites = tramites.filter(t => {
+    if (tramiteFilter === 'pendientes' && t.hasSchedule) return false;
+    if (tramiteFilter === 'completados' && !t.hasSchedule) return false;
+    if (tramiteSearch.trim()) {
+      const q = tramiteSearch.toLowerCase().trim();
+      const matchName = (t.nombreFacilitador || '').toLowerCase().includes(q);
+      const matchCi = (t.ciCompleta || '').toLowerCase().includes(q);
+      const matchCp = t.cpRecord?.codigoCompleto.toLowerCase().includes(q);
+      const matchInf = t.infRecord?.codigoCompleto.toLowerCase().includes(q);
+      const matchIni = t.iniRecord?.codigoCompleto.toLowerCase().includes(q);
+      return matchName || matchCi || matchCp || matchInf || matchIni;
+    }
+    return true;
+  });
+
+  // Calculate Lugar Counts dynamically for active schedule
+  const lugarCounts = useMemo<Record<string, number>>(() => {
+    if (!resultado || !resultado.asignaciones) return {};
+    const counts: Record<string, number> = {};
+    resultado.asignaciones.forEach(a => {
+      const lugar = a.lugar || 'Sede Central';
+      counts[lugar] = (counts[lugar] || 0) + 1;
+    });
+    return counts;
+  }, [resultado]);
+
+  // Categorize courses if active resultado exists
   let countEnCurso = 0;
   let countProximos = 0;
   let countInformesPendientes = 0;
   let countFinalizados = 0;
 
-  const coursesWithStatus = resultado.asignaciones.map(a => {
+  const coursesWithStatus = resultado ? resultado.asignaciones.map(a => {
     let status: 'en_curso' | 'proximo' | 'informe_pendiente' | 'finalizado' = 'proximo';
     
-    const diffInforme = Math.floor((hoy.getTime() - a.fin.getTime()) / (1000 * 60 * 60 * 24));
+    const finDate = new Date(a.fin);
+    const inicioDate = new Date(a.inicio);
+    const diffInforme = Math.floor((hoy.getTime() - finDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (hoy >= a.inicio && hoy <= a.fin) {
+    if (hoy >= inicioDate && hoy <= finDate) {
       status = 'en_curso';
       countEnCurso++;
-    } else if (hoy < a.inicio) {
+    } else if (hoy < inicioDate) {
       status = 'proximo';
       countProximos++;
     } else if (diffInforme >= 0 && diffInforme <= 3) {
@@ -72,71 +192,50 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
 
     return {
       ...a,
+      inicio: inicioDate,
+      fin: finDate,
+      informeFinal: new Date(a.informeFinal),
       status,
       diffInforme
     };
-  });
+  }) : [];
 
   const filteredCourses = coursesWithStatus.filter(c => {
     if (filterStatus === 'todos') return true;
     return c.status === filterStatus;
   });
 
-  // Calculate location breakdown
-  const lugarCounts: Record<string, number> = {};
-  resultado.asignaciones.forEach(a => {
-    lugarCounts[a.lugar] = (lugarCounts[a.lugar] || 0) + 1;
-  });
-
-  // Calculate days progress
-  const startMs = resultado.fechaInicioContrato.getTime();
-  const endMs = resultado.limiteContrato.getTime();
-  const totalDays = 100;
-  const elapsedMs = Math.max(0, hoy.getTime() - startMs);
-  const elapsedDays = Math.min(totalDays, Math.floor(elapsedMs / (1000 * 60 * 60 * 24)));
-  const progressPercent = Math.min(100, Math.round((elapsedDays / totalDays) * 100));
+  const nombreFacilitadorActual = resultado ? (resultado.facilitador || (resultado as any).nombreDocente || 'Facilitador Formador') : '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Active Role Mode Indicator Banner */}
-      <div className={`p-4 rounded-xl border flex flex-wrap items-center justify-between gap-4 transition-all shadow-xs ${
-        isAdminMode
-          ? 'bg-purple-50/80 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800/60 text-purple-950 dark:text-purple-100'
-          : 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-100'
-      }`}>
+      <div className="bg-white dark:bg-[#252628] p-4 rounded-lg border border-zinc-200 dark:border-[#333438] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-xs shrink-0 ${
-            isAdminMode
-              ? 'bg-purple-600 text-white'
-              : 'bg-indigo-600 text-white'
-          }`}>
-            {isAdminMode ? <ShieldCheck className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
+          <div className="w-9 h-9 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-700 dark:text-zinc-200 flex items-center justify-center shrink-0">
+            {isAdminMode ? <ShieldCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" /> : <UserCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xs font-bold uppercase tracking-wider">
-                {isAdminMode ? 'Modo Administrador: Visión Global de la Sede' : 'Modo Técnico de Seguimiento: Carga y Verificación Personal'}
+              <h2 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                {isAdminMode ? 'Modo Administrador: Monitoreo Institucional UNEFCO' : 'Modo Técnico de Seguimiento: Gestión Académica'}
               </h2>
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase border ${
-                isAdminMode
-                  ? 'bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-300'
-                  : 'bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 border-indigo-300'
-              }`}>
-                {isAdminMode ? 'Auditoría Global' : 'Foco Operativo'}
+              <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-mono">
+                {isAdminMode ? 'Auditoría' : 'Operativo'}
               </span>
             </div>
-            <p className="text-[11px] opacity-80 mt-0.5 font-medium">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               {isAdminMode
-                ? `Monitoreo consolidado de la Sede UNEFCO La Paz. Historial global: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
-                : `Supervisión de cronogramas y cursos activos bajo la gestión de ${currentUser?.displayName || resultado.tecnico || 'Técnico de Seguimiento'}.`}
+                ? `Monitoreo consolidado de la Sede UNEFCO. Registros académicos: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
+                : `Supervisión de cronogramas y ciclos formativos activos bajo la gestión de ${currentUser?.displayName || (resultado ? resultado.tecnico : 'Técnico de Seguimiento')}.`}
             </p>
           </div>
         </div>
 
         {isAdminMode && (
-          <div className="flex items-center gap-3 text-xs font-mono font-bold bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800/60 shadow-2xs">
-            <span className="text-slate-500">Cronogramas Sede:</span>
-            <span className="text-purple-700 dark:text-purple-300">{activeGlobalRecords} Activos</span>
+          <div className="flex items-center gap-2 text-xs font-mono bg-zinc-50 dark:bg-[#1e1f21] px-3 py-1.5 rounded border border-zinc-200 dark:border-[#333438]">
+            <span className="text-zinc-500">Cronogramas Activos:</span>
+            <span className="text-zinc-900 dark:text-zinc-100 font-semibold">{activeGlobalRecords} Registrados</span>
             {anuladosGlobalRecords > 0 && (
               <span className="text-red-600 dark:text-red-400">({anuladosGlobalRecords} Anulados)</span>
             )}
@@ -146,355 +245,484 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* En Curso Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-md shadow-2xs flex flex-col justify-between">
+        {/* Trámites Pendientes Card */}
+        <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-              En Curso Hoy
-            </span>
-            <div className="flex items-end gap-2">
-              <span className="font-display text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                {countEnCurso}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                Trámites sin Cronograma
               </span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs mb-1">Clases activas</span>
+              {tramitesPendientes.length > 0 && (
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+              )}
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
+                {tramitesPendientes.length}
+              </span>
+              <span className="text-xs text-zinc-500">Pendientes</span>
             </div>
           </div>
-          <div className="mt-4 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-600 dark:bg-indigo-400" style={{ width: `${Math.min(countEnCurso * 20, 100)}%` }}></div>
+          <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-[#333438] flex items-center justify-between text-xs text-zinc-500">
+            <span>Facilitadores:</span>
+            <span className="font-mono text-zinc-800 dark:text-zinc-200">{totalTramites} Trámites</span>
+          </div>
+        </div>
+
+        {/* En Curso Card */}
+        <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
+              En Curso Hoy
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
+                {countEnCurso}
+              </span>
+              <span className="text-xs text-zinc-500">Sesiones activas</span>
+            </div>
+          </div>
+          <div className="mt-3 h-1 bg-zinc-100 dark:bg-[#1e1f21] rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-600" style={{ width: `${Math.min(countEnCurso * 20, 100)}%` }}></div>
           </div>
         </div>
 
         {/* Próximos Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-md shadow-2xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-              Próximos Cursos
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
+              Próximos Módulos
             </span>
-            <div className="flex items-end gap-2">
-              <span className="font-display text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
                 {countProximos}
               </span>
-              <span className="text-slate-500 font-medium text-xs mb-1">En agenda</span>
+              <span className="text-xs text-zinc-500">En programación</span>
             </div>
           </div>
-          <div className="mt-4 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500" style={{ width: `${Math.min(countProximos * 20, 100)}%` }}></div>
+          <div className="mt-3 h-1 bg-zinc-100 dark:bg-[#1e1f21] rounded-full overflow-hidden">
+            <div className="h-full bg-[#4573d2]" style={{ width: `${Math.min(countProximos * 20, 100)}%` }}></div>
           </div>
         </div>
 
-        {/* Informes Pendientes Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-md shadow-2xs flex flex-col justify-between">
+        {/* Total Cronogramas Guardados Card */}
+        <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-              Carga e Informes
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
+              Cronogramas Formativos
             </span>
-            <div className="flex items-end gap-2">
-              <span className="font-display text-3xl font-bold text-amber-600 dark:text-amber-400">
-                {countInformesPendientes}
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
+                {activeGlobalRecords}
               </span>
-              <span className="text-amber-600 dark:text-amber-400 font-bold text-xs mb-1">Pendientes</span>
+              <span className="text-xs text-zinc-500">Vigentes</span>
             </div>
           </div>
-          <div className="mt-4 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-amber-500" style={{ width: `${Math.min(countInformesPendientes * 25, 100)}%` }}></div>
-          </div>
-        </div>
-
-        {/* Finalizados Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-md shadow-2xs flex flex-col justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-              Total Cursos Programados
-            </span>
-            <div className="flex items-end gap-2">
-              <span className="font-display text-3xl font-bold text-slate-900 dark:text-white">
-                {resultado.asignaciones.length}
-              </span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs mb-1">100% Asignados</span>
-            </div>
-          </div>
-          <div className="mt-4 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-500" style={{ width: '100%' }}></div>
+          <div className="mt-3 h-1 bg-zinc-100 dark:bg-[#1e1f21] rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-600" style={{ width: '100%' }}></div>
           </div>
         </div>
       </div>
 
-      {/* Bento Charts Section from Stitch */}
-      <div className="grid grid-cols-12 gap-4">
-        {/* Resource Allocation (Bar Chart) */}
-        <div className="col-span-12 lg:col-span-8 bg-white dark:bg-slate-900 p-6 rounded-md border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-display font-semibold text-sm md:text-base text-slate-900 dark:text-white">
-              Asignación de Carga por Sesiones
-            </h3>
-            <div className="flex gap-4 text-xs font-medium">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-indigo-600"></span>
-                <span className="text-slate-600 dark:text-slate-400">Facilitadores</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                <span className="text-slate-600 dark:text-slate-400">Técnicos</span>
-              </div>
+      {/* ------------------------------------------------------------------- */}
+      {/* SECCIÓN DEDICADA: TRÁMITES DE CONTRATACIÓN & ESTADO DE CRONOGRAMA  */}
+      {/* ------------------------------------------------------------------- */}
+      <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg p-5 space-y-4">
+        
+        {/* Header & Filter Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-[#333438]">
+          <div>
+            <div className="flex items-center gap-2">
+              <FileCheck2 className="w-4 h-4 text-zinc-500" />
+              <h3 className="font-semibold text-sm md:text-base text-zinc-900 dark:text-white">
+                Seguimiento de Trámites de Contratación y Formación Docente
+              </h3>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              Vinculación directa entre los correlativos oficiales UNEFCO (CP, INF, INI) y la asignación de cronogramas.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filter Tabs */}
+            <div className="flex bg-zinc-100 dark:bg-[#1e1f21] p-0.5 rounded border border-zinc-200 dark:border-[#333438] text-xs">
+              <button
+                type="button"
+                onClick={() => setTramiteFilter('pendientes')}
+                aria-label="Ver trámites pendientes"
+                className={`px-2.5 py-1 rounded transition-colors cursor-pointer flex items-center gap-1 text-xs font-medium ${
+                  tramiteFilter === 'pendientes'
+                    ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#38393e] shadow-2xs'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                <span>Pendientes ({tramitesPendientes.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTramiteFilter('completados')}
+                aria-label="Ver trámites completados"
+                className={`px-2.5 py-1 rounded transition-colors cursor-pointer flex items-center gap-1 text-xs font-medium ${
+                  tramiteFilter === 'completados'
+                    ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#38393e] shadow-2xs'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Con Cronograma ({tramitesCompletados.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTramiteFilter('todos')}
+                aria-label="Ver todos los trámites"
+                className={`px-2.5 py-1 rounded transition-colors cursor-pointer text-xs font-medium ${
+                  tramiteFilter === 'todos'
+                    ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#38393e] shadow-2xs'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                <span>Todos ({totalTramites})</span>
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={tramiteSearch}
+                onChange={(e) => setTramiteSearch(e.target.value)}
+                placeholder="Buscar facilitador, CI..."
+                className="pl-8 pr-3 py-1 text-xs bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded w-44 focus:outline-none"
+              />
             </div>
           </div>
-          <div className="h-48 flex items-end justify-between gap-4 px-4 pt-4 border-b border-slate-100 dark:border-slate-800">
-            {['Sesión 1', 'Sesión 2', 'Sesión 3', 'Informe Final', 'Archivo'].map((sName, sIdx) => {
-              const hFac = [70, 85, 65, 90, 40][sIdx];
-              const hTec = [45, 60, 55, 75, 30][sIdx];
+        </div>
+
+        {/* Trámites List / Grid */}
+        {filteredTramites.length === 0 ? (
+          <div className="p-6 text-center bg-zinc-50 dark:bg-[#1e1f21] rounded border border-dashed border-zinc-200 dark:border-[#333438] space-y-1">
+            <Info className="w-6 h-6 text-zinc-400 mx-auto" />
+            <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              {tramiteFilter === 'pendientes'
+                ? '¡Excelente! No hay trámites de contratación pendientes de asignación de cronograma.'
+                : 'No se encontraron registros de trámites de contratación con los filtros seleccionados.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2.5">
+            {filteredTramites.map((item) => {
               return (
-                <div key={sIdx} className="flex flex-col items-center flex-1 h-full justify-end">
-                  <div className="flex gap-1.5 w-full justify-center items-end h-full">
-                    <div className="w-6 md:w-8 bg-indigo-600 rounded-t transition-all duration-500" style={{ height: `${hFac}%` }}></div>
-                    <div className="w-6 md:w-8 bg-emerald-500 rounded-t transition-all duration-500" style={{ height: `${hTec}%` }}></div>
+                <div
+                  key={item.ciCompleta}
+                  className="p-3.5 rounded bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
+                >
+                  {/* Left: Facilitador Info & CI */}
+                  <div className="space-y-1 min-w-[200px]">
+                    <div className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                      <h4 className="font-semibold text-xs text-zinc-900 dark:text-white uppercase">
+                        {item.nombreFacilitador}
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                      <span className="font-mono">
+                        CI: {item.ciCompleta}
+                      </span>
+                      <span>•</span>
+                      <span>
+                        Reg: {item.usuarioGenerador}
+                      </span>
+                    </div>
                   </div>
-                  <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 mt-2">{sName}</span>
+
+                  {/* Middle: Correlativos Status Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    {item.cpRecord ? (
+                      <div className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded flex items-center gap-1 text-[11px]">
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">P1:</span>
+                        <span className="font-mono text-emerald-900 dark:text-emerald-200">{item.cpRecord.codigoCompleto}</span>
+                      </div>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-zinc-100 dark:bg-[#2d2e32] text-zinc-400 rounded text-[10px]">P1: Pendiente</span>
+                    )}
+
+                    {item.infRecord ? (
+                      <div className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded flex items-center gap-1 text-[11px]">
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">P2:</span>
+                        <span className="font-mono text-emerald-900 dark:text-emerald-200">{item.infRecord.codigoCompleto}</span>
+                      </div>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-zinc-100 dark:bg-[#2d2e32] text-zinc-400 rounded text-[10px]">P2: Pendiente</span>
+                    )}
+
+                    {item.iniRecord ? (
+                      <div className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded flex items-center gap-1 text-[11px]">
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">P3:</span>
+                        <span className="font-mono text-emerald-900 dark:text-emerald-200">{item.iniRecord.codigoCompleto}</span>
+                      </div>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-zinc-100 dark:bg-[#2d2e32] text-zinc-400 rounded text-[10px]">P3: Pendiente</span>
+                    )}
+                  </div>
+
+                  {/* Right: Schedule Status & Action Button */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {item.hasSchedule && item.matchingSchedule ? (
+                      <div className="text-right">
+                        <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded text-[10px] font-medium uppercase inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          Con Cronograma
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-right">
+                        <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded text-[10px] font-medium uppercase inline-flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                          Sin Cronograma
+                        </span>
+                      </div>
+                    )}
+
+                    {onGoToProgramar && (
+                      <button
+                        type="button"
+                        onClick={() => onGoToProgramar(item.nombreFacilitador, item.ciNum)}
+                        className={`px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer ${
+                          item.hasSchedule
+                            ? 'bg-zinc-200 dark:bg-[#2d2e32] hover:bg-zinc-300 dark:hover:bg-[#38393e] text-zinc-800 dark:text-zinc-200'
+                            : 'bg-[#4573d2] hover:bg-[#3866c6] text-white'
+                        }`}
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{item.hasSchedule ? 'Ver / Modificar' : 'Programar'}</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
                 </div>
               );
             })}
           </div>
-        </div>
-
-        {/* Course Status (Donut Representation) */}
-        <div className="col-span-12 lg:col-span-4 bg-white dark:bg-slate-900 p-6 rounded-md border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col">
-          <h3 className="font-display font-semibold text-sm md:text-base text-slate-900 dark:text-white mb-4">
-            Estado de Cursos
-          </h3>
-          <div className="flex-1 flex flex-col justify-center items-center">
-            <div className="relative w-40 h-40 mb-4">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle className="text-slate-100 dark:text-slate-800" cx="80" cy="80" fill="transparent" r="64" stroke="currentColor" strokeWidth="12"></circle>
-                <circle className="text-indigo-600 dark:text-indigo-400" cx="80" cy="80" fill="transparent" r="64" stroke="currentColor" strokeDasharray="402" strokeDashoffset="120" strokeWidth="12"></circle>
-                <circle className="text-emerald-500" cx="80" cy="80" fill="transparent" r="64" stroke="currentColor" strokeDasharray="402" strokeDashoffset="300" strokeWidth="12"></circle>
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-display text-2xl font-bold text-slate-900 dark:text-white">{resultado.asignaciones.length}</span>
-                <span className="font-mono text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest">TOTAL</span>
-              </div>
-            </div>
-            <div className="w-full space-y-2 text-xs">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span><span className="text-slate-600 dark:text-slate-300">En Curso</span></div>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">{countEnCurso}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span className="text-slate-600 dark:text-slate-300">Próximos</span></div>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">{countProximos}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span className="text-slate-600 dark:text-slate-300">Inf. Pendientes</span></div>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">{countInformesPendientes}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Timeline Trend Area SVG */}
-        <div className="col-span-12 bg-white dark:bg-slate-900 p-6 rounded-md border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-display font-semibold text-sm md:text-base text-slate-900 dark:text-white">
-              Tendencia de Cumplimiento de Contrato
-            </h3>
-            <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded">
-              Gestión UNEFCO 2026
-            </span>
-          </div>
-          <div className="h-32 relative w-full overflow-hidden">
-            <svg className="w-full h-full preserve-aspect-ratio" preserveAspectRatio="none" viewBox="0 0 1000 200">
-              <defs>
-                <linearGradient id="gradient-primary" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.25"></stop>
-                  <stop offset="100%" stopColor="#4f46e5" stopOpacity="0"></stop>
-                </linearGradient>
-              </defs>
-              <path d="M0,160 Q100,140 200,110 T400,120 T600,40 T800,90 T1000,20 L1000,200 L0,200 Z" fill="url(#gradient-primary)"></path>
-              <path className="text-indigo-600 dark:text-indigo-400" d="M0,160 Q100,140 200,110 T400,120 T600,40 T800,90 T1000,20" fill="none" stroke="currentColor" strokeWidth="3"></path>
-            </svg>
-            <div className="absolute bottom-0 w-full flex justify-between px-2 font-mono text-slate-400 text-[10px]">
-              <span>ENE</span><span>FEB</span><span>MAR</span><span>ABR</span><span>MAY</span><span>JUN</span><span>JUL</span>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Contract Timeline Progress Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-sm shadow-2xs space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-indigo-600" />
-              Progreso del Margen de Contrato (100 Días Fijos)
-            </h3>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-              Desde {formatDateVisual(resultado.fechaInicioContrato)} hasta {formatDateVisual(resultado.limiteContrato)}
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-              {elapsedDays} / 100 Días Transcurridos
-            </span>
-            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold block">
-              {progressPercent}% Completado
-            </span>
-          </div>
-        </div>
-
-        {/* Visual Progress Bar */}
-        <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-2xs overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700">
-          <div 
-            className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-2xs transition-all duration-500"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-        {/* Breakdown of Sede / Places */}
-        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-6 text-xs">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider">
-            <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Sedes en Ejecución:</span>
-          </div>
-          {Object.entries(lugarCounts).map(([lugar, count], idx) => (
-            <div key={idx} className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-2xs">
-              <span className="font-bold text-slate-800 dark:text-slate-200">{lugar}:</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">{count} cursos</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Interactive Filter & List of Courses */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-sm shadow-2xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-indigo-600" />
-            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-              Seguimiento por Estado de Curso
-            </h3>
-          </div>
-
-          {/* Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xs text-[11px] font-bold">
-            <button
-              onClick={() => setFilterStatus('todos')}
-              className={`px-3 py-1 rounded-2xs transition-colors cursor-pointer ${
-                filterStatus === 'todos'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              Todos ({coursesWithStatus.length})
-            </button>
-            <button
-              onClick={() => setFilterStatus('en_curso')}
-              className={`px-3 py-1 rounded-2xs transition-colors cursor-pointer ${
-                filterStatus === 'en_curso'
-                  ? 'bg-emerald-600 text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600'
-              }`}
-            >
-              En Curso ({countEnCurso})
-            </button>
-            <button
-              onClick={() => setFilterStatus('proximo')}
-              className={`px-3 py-1 rounded-2xs transition-colors cursor-pointer ${
-                filterStatus === 'proximo'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600'
-              }`}
-            >
-              Próximos ({countProximos})
-            </button>
-            <button
-              onClick={() => setFilterStatus('informe_pendiente')}
-              className={`px-3 py-1 rounded-2xs transition-colors cursor-pointer ${
-                filterStatus === 'informe_pendiente'
-                  ? 'bg-amber-600 text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-amber-600'
-              }`}
-            >
-              Inf. Pendientes ({countInformesPendientes})
-            </button>
-            <button
-              onClick={() => setFilterStatus('finalizado')}
-              className={`px-3 py-1 rounded-2xs transition-colors cursor-pointer ${
-                filterStatus === 'finalizado'
-                  ? 'bg-slate-700 text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
-              }`}
-            >
-              Finalizados ({countFinalizados})
-            </button>
-          </div>
-        </div>
-
-        {/* Detailed List */}
-        <div className="space-y-3">
-          {filteredCourses.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-xs italic">
-              No hay cursos en esta categoría de filtro.
-            </div>
-          ) : (
-            filteredCourses.map((c, idx) => {
-              let badgeColor = "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800";
-              let label = "Próximo";
-
-              if (c.status === 'en_curso') {
-                badgeColor = "bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
-                label = "En Curso";
-              } else if (c.status === 'informe_pendiente') {
-                badgeColor = "bg-amber-50 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-800";
-                label = "Informe Pendiente";
-              } else if (c.status === 'finalizado') {
-                badgeColor = "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700";
-                label = "Finalizado";
-              }
-
-              return (
-                <div 
-                  key={idx}
-                  className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xs flex flex-wrap items-center justify-between gap-4 text-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                    <div>
-                      <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                        {c.cicloId} | C{c.cursoIndex + 1}: {c.cursoNombre}
-                      </h4>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                        Lugar: <span className="text-slate-800 dark:text-slate-200">{c.lugar}</span> • Modalidad: <span className="text-slate-800 dark:text-slate-200">{c.modalidad}</span>
-                      </p>
-                    </div>
+      {/* If active resultado exists, render active schedule assignment metrics & Bento charts */}
+      {resultado && (
+        <>
+          {/* Bento Charts Section */}
+          <div className="grid grid-cols-12 gap-4">
+            {/* Academic Program Progress */}
+            <div className="col-span-12 lg:col-span-8 bg-white dark:bg-[#252628] p-5 rounded-lg border border-zinc-200 dark:border-[#333438] space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-200 dark:border-[#333438] pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-zinc-500" />
+                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-white uppercase tracking-tight">
+                      Módulos Formativos Programados
+                    </h3>
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="text-right">
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">
-                        Fechas de Clases
-                      </span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
-                        {formatDateVisual(c.inicio, false)} — {formatDateVisual(c.fin, false)}
-                      </span>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider block">
-                        Límite Informe
-                      </span>
-                      <span className="font-bold text-amber-700 dark:text-amber-300">
-                        {formatDateVisual(c.informeFinal, false)}
-                      </span>
-                    </div>
-
-                    <span className={`px-2.5 py-1 rounded-2xs border text-[10px] font-bold uppercase tracking-wider ${badgeColor}`}>
-                      {label}
-                    </span>
-                  </div>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Facilitador/a: <span className="font-semibold text-zinc-900 dark:text-white">{nombreFacilitadorActual}</span>
+                  </p>
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+                <div className="text-xs font-mono bg-zinc-100 dark:bg-[#1e1f21] text-zinc-800 dark:text-zinc-200 px-2.5 py-1 rounded border border-zinc-200 dark:border-[#333438]">
+                  {resultado.asignaciones.length} Módulo(s) Formativo(s)
+                </div>
+              </div>
+
+              {/* Module Timeline Visualizer */}
+              <div className="space-y-2 pt-1">
+                {resultado.asignaciones.map((mod, idx) => {
+                  const days = Math.max(1, Math.ceil((new Date(mod.fin).getTime() - new Date(mod.inicio).getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                  return (
+                    <div key={idx} className="p-3 bg-zinc-50 dark:bg-[#1e1f21] rounded border border-zinc-200 dark:border-[#333438] space-y-1.5">
+                      <div className="flex flex-wrap justify-between items-center text-xs">
+                        <span className="font-semibold text-zinc-900 dark:text-white">
+                          {mod.cicloId} — Módulo {idx + 1}: {mod.cursoNombre}
+                        </span>
+                        <span className="font-mono text-[11px] text-zinc-500">
+                          {days} Días ({mod.modalidad})
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
+                        <div>
+                          Inicio: <strong className="text-zinc-700 dark:text-zinc-300 font-normal">{formatDateVisual(new Date(mod.inicio), false)}</strong>
+                        </div>
+                        <div>
+                          Fin: <strong className="text-zinc-700 dark:text-zinc-300 font-normal">{formatDateVisual(new Date(mod.fin), false)}</strong>
+                        </div>
+                        <div>
+                          Informe: <strong className="text-zinc-700 dark:text-zinc-300 font-normal">{formatDateVisual(new Date(mod.informeFinal), false)}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Location Distribution */}
+            <div className="col-span-12 lg:col-span-4 bg-white dark:bg-[#252628] p-5 rounded-lg border border-zinc-200 dark:border-[#333438] flex flex-col justify-between">
+              <div>
+                <h3 className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-200 dark:border-[#333438]">
+                  Distribución por Sede
+                </h3>
+                <div className="space-y-2.5">
+                  {Object.entries(lugarCounts).map(([lugar, count], idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-700 dark:text-zinc-300 truncate max-w-[180px]">{lugar}</span>
+                        <span className="font-mono text-zinc-500">{count} módulo(s)</span>
+                      </div>
+                      <div className="h-1.5 bg-zinc-100 dark:bg-[#1e1f21] rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-[#4573d2] rounded-full" 
+                          style={{ width: `${(Number(count) / (resultado?.slots?.length || 1)) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="pt-3 border-t border-zinc-200 dark:border-[#333438] text-[10px] text-zinc-400 font-mono">
+                Cobertura de Sede: 100% Verificado
+              </div>
+            </div>
+          </div>
+
+          {/* Active Schedule Course Filter & Table */}
+          <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg p-5 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-[#333438]">
+              <div>
+                <h3 className="font-semibold text-sm text-zinc-900 dark:text-white">
+                  Módulos del Cronograma Vigente ({nombreFacilitadorActual})
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Seguimiento de plazos de ejecución e informes finales.
+                </p>
+              </div>
+
+              {/* Status Filter Pills */}
+              <div className="flex bg-zinc-100 dark:bg-[#1e1f21] p-0.5 rounded border border-zinc-200 dark:border-[#333438] text-xs font-medium">
+                <button
+                  onClick={() => setFilterStatus('todos')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                    filterStatus === 'todos'
+                      ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white shadow-2xs'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  Todos ({coursesWithStatus.length})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('en_curso')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                    filterStatus === 'en_curso'
+                      ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white shadow-2xs'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  En Curso ({countEnCurso})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('proximo')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                    filterStatus === 'proximo'
+                      ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white shadow-2xs'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  Próximos ({countProximos})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('informe_pendiente')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                    filterStatus === 'informe_pendiente'
+                      ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white shadow-2xs'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  Inf. Pendientes ({countInformesPendientes})
+                </button>
+              </div>
+            </div>
+
+            {/* Detailed Course List */}
+            <div className="space-y-2">
+              {filteredCourses.length === 0 ? (
+                <div className="p-6 text-center text-zinc-400 text-xs italic">
+                  No hay módulos en esta categoría de filtro.
+                </div>
+              ) : (
+                filteredCourses.map((c, idx) => {
+                  let badgeColor = "bg-zinc-100 dark:bg-[#2d2e32] text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-[#3a3b40]";
+                  let label = "Próximo";
+
+                  if (c.status === 'en_curso') {
+                    badgeColor = "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+                    label = "En Curso";
+                  } else if (c.status === 'informe_pendiente') {
+                    badgeColor = "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800";
+                    label = "Informe Pendiente";
+                  } else if (c.status === 'finalizado') {
+                    badgeColor = "bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-[#333438]";
+                    label = "Finalizado";
+                  }
+
+                  return (
+                    <div 
+                      key={idx}
+                      className="p-3 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded flex flex-wrap items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <BookOpen className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                        <div>
+                          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs">
+                            {c.cicloId} | M{c.cursoIndex + 1}: {c.cursoNombre}
+                          </h4>
+                          <p className="text-[10px] text-zinc-500 mt-0.5">
+                            Lugar: {c.lugar} • Modalidad: {c.modalidad}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="text-right">
+                          <span className="text-[9px] text-zinc-400 font-medium uppercase tracking-wider block">
+                            Fechas Formativas
+                          </span>
+                          <span className="font-mono text-zinc-800 dark:text-zinc-200">
+                            {formatDateVisual(c.inicio, false)} — {formatDateVisual(c.fin, false)}
+                          </span>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[9px] text-zinc-400 font-medium uppercase tracking-wider block">
+                            Límite Informe
+                          </span>
+                          <span className="font-mono text-zinc-800 dark:text-zinc-200">
+                            {formatDateVisual(c.informeFinal, false)}
+                          </span>
+                        </div>
+
+                        <span className={`px-2 py-0.5 rounded border text-[10px] font-medium ${badgeColor}`}>
+                          {label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

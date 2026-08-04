@@ -171,42 +171,42 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs animate-fade-in">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Modal Header */}
-        <div className="p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        <div className="p-4 bg-[#1e2330] text-white flex items-center justify-between border-b border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600/30 border border-indigo-400/40 rounded-lg flex items-center justify-center">
-              <Users className="w-5 h-5 text-indigo-400" />
+            <div className="w-9 h-9 bg-white/10 border border-white/20 rounded flex items-center justify-center">
+              <Users className="w-4 h-4 text-zinc-200" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest block">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
                 UNEFCO LA PAZ • MÓDULO ADMINISTRATIVO
               </span>
-              <h2 className="text-lg font-bold font-display">
+              <h2 className="text-base font-semibold">
                 Gestión de Técnicos de Seguimiento
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Action Toolbar */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="p-3 border-b border-zinc-200 dark:border-[#333438] bg-zinc-50 dark:bg-[#1e1f21] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               placeholder="Buscar por nombre o correo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-[#4573d2]"
             />
           </div>
 
@@ -216,7 +216,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
               setFormError(null);
               setFormSuccess(null);
             }}
-            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-md text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors"
+            className="w-full sm:w-auto bg-[#4573d2] hover:bg-[#3866c6] text-white px-3 py-1.5 rounded text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
             <UserPlus className="w-4 h-4" />
             <span>{showAddForm ? 'Ocultar Formulario' : 'Registrar Nuevo Técnico'}</span>
@@ -228,14 +228,14 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
           {/* Form to add new technician */}
           {showAddForm && (
-            <div className="bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 rounded-xl p-4 animate-fade-in shadow-xs">
-              <h3 className="text-sm font-bold text-indigo-950 dark:text-indigo-200 mb-3 flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 animate-fade-in shadow-xs">
+              <h3 className="text-sm font-bold text-emerald-950 dark:text-emerald-200 mb-3 flex items-center gap-2 font-display">
+                <UserPlus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Registrar Nuevo Técnico de Seguimiento UNEFCO</span>
               </h3>
 
               {formError && (
-                <div className="mb-3 p-2.5 bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 rounded-md text-xs flex items-center gap-2">
+                <div className="mb-3 p-2.5 bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 rounded-xl text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                   <span>{formError}</span>
                 </div>
@@ -243,7 +243,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
               <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
                     Nombre Completo del Técnico
                   </label>
                   <input
@@ -252,12 +252,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     placeholder="Ej. LIC. MARIO MAMANI CONDORI"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-xs font-medium"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
                     Correo Electrónico (Opcional)
                   </label>
                   <input
@@ -265,28 +265,28 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     placeholder="mario.mamani@unefco.edu.bo"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-xs"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
                     Contraseña de Acceso
                   </label>
                   <div className="relative">
-                    <Key className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Key className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
                     <input
                       type="text"
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-xs font-mono font-bold"
+                      className="w-full pl-8 pr-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs font-mono font-bold"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
                     Cargo / Función
                   </label>
                   <input
@@ -294,32 +294,32 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     placeholder="Ej. Técnico de Seguimiento Pedagógico"
                     value={newCargo}
                     onChange={(e) => setNewCargo(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-xs"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs"
                   />
                 </div>
 
-                <div className="sm:col-span-2 flex items-center justify-between pt-2 border-t border-indigo-200/60 dark:border-indigo-800/60">
+                <div className="sm:col-span-2 flex items-center justify-between pt-2 border-t border-emerald-200/60 dark:border-emerald-800/60">
                   <div className="flex items-center gap-3">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Rol asignado:</label>
-                    <label className="inline-flex items-center gap-1.5 text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                    <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 font-display">Rol asignado:</label>
+                    <label className="inline-flex items-center gap-1.5 text-xs text-zinc-800 dark:text-zinc-200 cursor-pointer">
                       <input
                         type="radio"
                         name="userRole"
                         value="tecnico"
                         checked={newRole === 'tecnico'}
                         onChange={() => setNewRole('tecnico')}
-                        className="text-indigo-600 focus:ring-indigo-500"
+                        className="text-emerald-600 focus:ring-emerald-500"
                       />
                       <span>Técnico de Seguimiento</span>
                     </label>
-                    <label className="inline-flex items-center gap-1.5 text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                    <label className="inline-flex items-center gap-1.5 text-xs text-zinc-800 dark:text-zinc-200 cursor-pointer">
                       <input
                         type="radio"
                         name="userRole"
                         value="admin"
                         checked={newRole === 'admin'}
                         onChange={() => setNewRole('admin')}
-                        className="text-indigo-600 focus:ring-indigo-500"
+                        className="text-emerald-600 focus:ring-emerald-500"
                       />
                       <span>Administrador General</span>
                     </label>
@@ -328,7 +328,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                   <button
                     type="submit"
                     disabled={formLoading}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-md transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-xl transition-colors cursor-pointer shadow-xs disabled:opacity-50 font-display"
                   >
                     {formLoading ? 'Guardando...' : 'Guardar y Habilitar Técnico'}
                   </button>
@@ -338,18 +338,18 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           )}
 
           {formSuccess && (
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-md text-xs flex items-center gap-2 font-medium">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-xl text-xs flex items-center gap-2 font-medium">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>{formSuccess}</span>
             </div>
           )}
 
           {/* User List Table */}
-          <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+          <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                  <tr className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[11px] font-bold uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-700 font-display">
                     <th className="py-2.5 px-4">Técnico / Usuario</th>
                     <th className="py-2.5 px-4">Correo</th>
                     <th className="py-2.5 px-4">Cargo</th>
@@ -358,16 +358,16 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     <th className="py-2.5 px-4 text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs text-slate-800 dark:text-slate-200">
+                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs text-zinc-800 dark:text-zinc-200">
                   {loadingUsers ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-500">
+                      <td colSpan={6} className="py-8 text-center text-zinc-500">
                         Cargando personal de seguimiento...
                       </td>
                     </tr>
                   ) : filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-500">
+                      <td colSpan={6} className="py-8 text-center text-zinc-500">
                         No se encontraron técnicos registrados.
                       </td>
                     </tr>
@@ -378,24 +378,24 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                       const isAdminRole = u.role === 'admin';
 
                       return (
-                        <tr key={u.uid} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <tr key={u.uid} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                           <td className="py-3 px-4">
                             <div className="font-bold flex items-center gap-2">
                               <span>{u.displayName}</span>
                               {isSelf && (
-                                <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 text-[10px] px-1.5 py-0.5 rounded-xs font-bold">
+                                <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] px-1.5 py-0.5 rounded-md font-bold font-display">
                                   Tú (Admin)
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-slate-400 block font-mono">ID: {u.uid}</span>
+                            <span className="text-[10px] text-zinc-400 block font-mono">ID: {u.uid}</span>
                           </td>
 
-                          <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300 text-[11px]">
+                          <td className="py-3 px-4 font-mono text-zinc-600 dark:text-zinc-300 text-[11px]">
                             {u.email}
                           </td>
 
-                          <td className="py-3 px-4 text-slate-600 dark:text-slate-400 text-[11px]">
+                          <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400 text-[11px]">
                             {u.cargo || 'Técnico de Seguimiento'}
                           </td>
 
@@ -403,20 +403,20 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                             <button
                               onClick={() => !isSelf && handleToggleRole(u)}
                               disabled={isSelf}
-                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider cursor-pointer ${
+                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider cursor-pointer font-display ${
                                 isAdminRole 
-                                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300' 
-                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300'
+                                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300' 
+                                  : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300'
                               } ${isSelf ? 'opacity-80 cursor-default' : 'hover:opacity-80'}`}
                               title={isSelf ? 'Es tu propia cuenta' : 'Hacer clic para cambiar rol'}
                             >
-                              {isAdminRole ? <ShieldCheck className="w-3 h-3 text-purple-600" /> : <Briefcase className="w-3 h-3 text-slate-500" />}
+                              {isAdminRole ? <ShieldCheck className="w-3 h-3 text-amber-600" /> : <Briefcase className="w-3 h-3 text-zinc-500" />}
                               <span>{isAdminRole ? 'ADMIN' : 'TÉCNICO'}</span>
                             </button>
                           </td>
 
                           <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-display ${
                               isActive 
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
                                 : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
@@ -430,7 +430,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                             {!isSelf ? (
                               <button
                                 onClick={() => handleToggleStatus(u)}
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1 ${
+                                className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1 font-display ${
                                   isActive 
                                     ? 'bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 border border-red-200' 
                                     : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-200'
@@ -449,7 +449,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                 )}
                               </button>
                             ) : (
-                              <span className="text-[10px] text-slate-400 italic">Cuenta Principal</span>
+                              <span className="text-[10px] text-zinc-400 italic">Cuenta Principal</span>
                             )}
                           </td>
                         </tr>
@@ -464,11 +464,11 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-between text-xs text-slate-500">
+        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between text-xs text-zinc-500">
           <span>Personal Registrado: <strong>{users.length} técnicos</strong></span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs uppercase tracking-wider rounded-md cursor-pointer transition-colors"
+            className="px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-colors font-display"
           >
             Cerrar
           </button>

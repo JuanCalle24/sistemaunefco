@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile } from '../types';
 import { 
   OFFICIAL_TEAM_PRESETS, 
@@ -7,16 +6,13 @@ import {
   seedDefaultTeamToFirestore 
 } from '../utils/authService';
 import { 
-  ShieldCheck, 
   Lock, 
   User, 
   Eye, 
   EyeOff, 
   AlertCircle, 
   UserCheck,
-  Building2,
-  KeyRound,
-  LockKeyhole
+  Shield
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -28,12 +24,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberUser, setRememberUser] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Seed team in Firestore on load if available
     seedDefaultTeamToFirestore();
   }, []);
 
@@ -53,7 +49,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
       setInfoMessage(`¡Bienvenido/a, ${userProfile.displayName}!`);
       setTimeout(() => {
         onLoginSuccess(userProfile);
-      }, 400);
+      }, 300);
     } catch (err: any) {
       setError(err.message || 'Error al validar credenciales.');
     } finally {
@@ -65,194 +61,139 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
     setError(null);
     setInfoMessage(null);
     setIdentifier(preset.displayName);
-    setPassword(''); // Force user to enter their secret password
+    setPassword('');
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors ${
-      isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'
+    <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors ${
+      isDarkMode ? 'dark bg-[#1e1f21] text-zinc-100' : 'bg-[#f8f9fa] text-zinc-900'
     }`}>
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg shadow-xs overflow-hidden">
         
-        {/* Header Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white text-center relative border-b border-indigo-900/50">
-          <motion.div 
-            animate={{ y: [0, -3, 0], scale: [1, 1.03, 1] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            className="w-14 h-14 bg-indigo-600/20 border border-indigo-400/30 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner backdrop-blur-xs cursor-pointer"
-          >
-            <Building2 className="w-8 h-8 text-indigo-400" />
-          </motion.div>
-          <span className="text-[11px] font-bold tracking-widest text-indigo-300 uppercase block mb-1">
-            UNEFCO LA PAZ
-          </span>
-          <h1 className="font-display text-xl sm:text-2xl font-black tracking-tight text-white">
-            SISTEMA DE CRONOGRAMAS
+        {/* Header Title */}
+        <div className="p-6 pb-2 text-left">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 tracking-wider uppercase">
+              UNEFCO La Paz
+            </span>
+            <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-medium">
+              Gestión Académica
+            </span>
+          </div>
+          <h1 className="text-xl font-semibold text-zinc-900 dark:text-white tracking-tight">
+            ¿Ya tienes una cuenta?
           </h1>
-          <p className="text-xs text-slate-300 mt-1 font-medium">
-            Control de Acceso Seguro para Técnicos de Seguimiento
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            Ingresa con tus credenciales institucionales para acceder al cronograma.
           </p>
         </div>
 
-        <div className="p-6 sm:p-8">
-          
+        <div className="p-6 pt-3">
           {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-5 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/80 rounded-xl flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300"
-            >
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
               <span>{error}</span>
-            </motion.div>
+            </div>
           )}
 
           {infoMessage && (
-            <motion.div 
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 rounded-xl flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-300"
-            >
-              <UserCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+            <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded text-xs text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
+              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               <span>{infoMessage}</span>
-            </motion.div>
+            </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-                Usuario / Técnico
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            
+            {/* Minimalist Input Grid matching user reference image */}
+            <div className="border border-zinc-300 dark:border-[#3e3f44] rounded overflow-hidden divide-y divide-zinc-300 dark:divide-[#3e3f44]">
+              {/* Username row */}
+              <div className="flex items-center bg-white dark:bg-[#1e1f21]">
+                <div className="w-12 h-11 bg-zinc-100 dark:bg-[#2d2e32] border-r border-zinc-300 dark:border-[#3e3f44] flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+                </div>
                 <input
                   type="text"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Escriba su Nombre Completo o seleccione abajo"
-                  className="w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                  placeholder="Nombre de usuario"
+                  className="w-full px-3 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-                Contraseña
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              {/* Password row */}
+              <div className="flex items-center bg-white dark:bg-[#1e1f21] relative">
+                <div className="w-12 h-11 bg-zinc-100 dark:bg-[#2d2e32] border-r border-zinc-300 dark:border-[#3e3f44] flex items-center justify-center shrink-0">
+                  <Lock className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+                </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Ingrese su contraseña personal"
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                  placeholder="Contraseña"
+                  className="w-full pl-3 pr-10 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
+                  className="absolute right-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 cursor-pointer"
                 >
-                  <AnimatePresence mode="wait">
-                    {showPassword ? (
-                      <motion.div key="off" initial={{ scale: 0.5 }} animate={{ scale: 1 }} exit={{ scale: 0.5 }}>
-                        <EyeOff className="w-4 h-4" />
-                      </motion.div>
-                    ) : (
-                      <motion.div key="eye" initial={{ scale: 0.5 }} animate={{ scale: 1 }} exit={{ scale: 0.5 }}>
-                        <Eye className="w-4 h-4" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 font-medium">
-                <LockKeyhole className="w-3 h-3 text-indigo-500 shrink-0" />
-                <span>Requiere contraseña individual asignada para ingresar</span>
-              </p>
             </div>
 
-            <motion.button
+            {/* Asana Royal Blue Acceder Button */}
+            <button
               type="submit"
-              whileHover={{ scale: loading ? 1 : 1.01 }}
-              whileTap={{ scale: loading ? 1 : 0.98 }}
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 mt-2"
+              className="w-full bg-[#4573d2] hover:bg-[#3866c6] text-white font-medium text-sm py-2 px-4 rounded transition-colors cursor-pointer disabled:opacity-60"
             >
-              {loading ? (
-                <span>Verificando credenciales...</span>
-              ) : (
-                <>
-                  <motion.div
-                    whileHover={{ scale: 1.2, rotate: [0, -10, 10, 0] }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                  </motion.div>
-                  <span>Ingresar al Sistema</span>
-                </>
-              )}
-            </motion.button>
+              {loading ? 'Validando...' : 'Acceder'}
+            </button>
           </form>
 
-          {/* User selector list - autofills username only */}
-          <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2.5 text-center">
-              Seleccionar Usuario Registrado
+          {/* Quick Access Preset Chips */}
+          <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-[#333438]">
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mb-2.5 font-medium">
+              Seleccionar usuario de prueba:
             </span>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {OFFICIAL_TEAM_PRESETS.map((member) => (
-                <motion.button
+                <button
                   key={member.uid}
                   type="button"
-                  whileHover={{ scale: 1.01, x: 2 }}
-                  whileTap={{ scale: 0.99 }}
                   onClick={() => handleSelectUser(member)}
-                  disabled={loading}
-                  className={`w-full bg-slate-50 hover:bg-indigo-50/80 dark:bg-slate-800/80 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-200 border p-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer group ${
+                  className={`w-full px-3 py-2 rounded text-xs font-medium flex items-center justify-between transition-colors border cursor-pointer ${
                     identifier === member.displayName 
-                      ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40' 
-                      : 'border-slate-200 dark:border-slate-700/80 hover:border-indigo-300'
+                      ? 'bg-zinc-100 dark:bg-[#2d2e32] border-zinc-400 dark:border-zinc-500 text-zinc-900 dark:text-white' 
+                      : 'bg-white dark:bg-[#1e1f21] border-zinc-200 dark:border-[#333438] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#28292c]'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 text-left">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-                      member.role === 'admin' 
-                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300' 
-                        : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300'
-                    }`}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-[10px] font-bold flex items-center justify-center text-zinc-700 dark:text-zinc-200">
                       {member.displayName.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                        {member.displayName}
-                      </div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
-                        {member.cargo}
-                      </div>
-                    </div>
+                    </span>
+                    <span>{member.displayName}</span>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    member.role === 'admin'
-                      ? 'bg-purple-100 dark:bg-purple-900/80 text-purple-800 dark:text-purple-200'
-                      : 'bg-indigo-100 dark:bg-indigo-900/80 text-indigo-800 dark:text-indigo-200'
-                  }`}>
-                    {member.role === 'admin' ? 'ADMIN' : 'TÉCNICO'}
+                  <span className="text-[10px] uppercase text-zinc-400 font-mono">
+                    {member.role}
                   </span>
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>
 
-        </div>
-
-        <div className="bg-slate-50 dark:bg-slate-950 p-3 text-center border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-          Unidad Especializada de Formación Continua — La Paz, Bolivia © 2026
+          {/* Footer note matching image 1 */}
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-6 leading-relaxed text-left border-t border-zinc-100 dark:border-[#2d2e32] pt-4">
+            Si olvidó su usuario y contraseña, comuníquese con el gestor académico de su curso.
+          </p>
         </div>
       </div>
     </div>
   );
 };
+
 
