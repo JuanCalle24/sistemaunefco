@@ -101,13 +101,13 @@ export function parseDegreeAndName(fullName: string) {
   if (!fullName) return { grado: 'Lic.', nombre: '' };
   const trimmed = fullName.trim();
   for (const degree of GRADOS_ACADEMICOS) {
-    if (trimmed.startsWith(degree + ' ')) {
+    if (trimmed.toLowerCase().startsWith(degree.toLowerCase() + ' ')) {
       return {
         grado: degree,
-        nombre: trimmed.slice(degree.length + 1)
+        nombre: trimmed.slice(degree.length).trim()
       };
     }
-    if (trimmed === degree) {
+    if (trimmed.toLowerCase() === degree.toLowerCase()) {
       return {
         grado: degree,
         nombre: ''

@@ -248,7 +248,7 @@ export default function App() {
       cicloIndex: 0, // CICLO-01
       cant: 1,
       lugar: 'SEDE CENTRAL - LA PAZ',
-      modalidad: 'Presencial'
+      modalidad: 'Semipresencial'
     }
   ]);
 
@@ -386,8 +386,9 @@ export default function App() {
       let courseList = oferta.cursos;
 
       // Exceptional / Single Course Assignment
-      if (row.isExceptional && typeof row.selectedCursoIndex === 'number' && row.selectedCursoIndex >= 0) {
-        const singleCourse = oferta.cursos[row.selectedCursoIndex];
+      if (row.isExceptional) {
+        const selectedIdx = typeof row.selectedCursoIndex === 'number' ? row.selectedCursoIndex : 0;
+        const singleCourse = oferta.cursos[selectedIdx] || oferta.cursos[0];
         if (singleCourse) {
           courseList = [singleCourse];
         }
@@ -427,7 +428,7 @@ export default function App() {
       cicloIndex: Math.min(matrixRows.length, OFERTA_FORMATIVA_UNEFCO_2026.length - 1),
       cant: 1,
       lugar: 'SEDE CENTRAL - LA PAZ',
-      modalidad: 'Presencial'
+      modalidad: 'Semipresencial'
     };
     setMatrixRows([...matrixRows, newRow]);
   };
@@ -716,7 +717,7 @@ export default function App() {
         cicloIndex: 0,
         cant: 1,
         lugar: 'SEDE CENTRAL - LA PAZ',
-        modalidad: 'Presencial'
+        modalidad: 'Semipresencial'
       }
     ]);
     setFacilitador('Lic. ');

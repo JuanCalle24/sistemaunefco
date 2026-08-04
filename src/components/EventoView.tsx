@@ -87,7 +87,8 @@ export const EventoView: React.FC<EventoViewProps> = ({
   // Primary slot details
   const primarySlot = resultado.slots[0];
   const lugarName = primarySlot ? primarySlot.lugar : 'SEDE LA PAZ';
-  const modalidadStr = primarySlot ? primarySlot.modalidad : 'Presencial / Semipresencial';
+  const rawModalidad = primarySlot?.modalidad;
+  const modalidadStr = (!rawModalidad || rawModalidad === 'Presencial') ? 'Semipresencial' : rawModalidad;
   
   // Format month name
   const monthName = resultado.fechaInicioContrato

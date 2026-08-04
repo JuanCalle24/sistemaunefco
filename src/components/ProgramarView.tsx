@@ -361,9 +361,9 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                       onChange={e => {
                         const idx = parseInt(e.target.value, 10);
                         onUpdateMatrixRow(row.id, 'cicloIndex', idx);
-                        onUpdateMatrixRow(row.id, 'selectedCursoIndex', null);
+                        onUpdateMatrixRow(row.id, 'selectedCursoIndex', row.isExceptional ? 0 : null);
                       }}
-                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer"
                     >
                       {OFERTA_FORMATIVA_UNEFCO_2026.map((c, idx) => (
                         <option key={c.id} value={idx}>
