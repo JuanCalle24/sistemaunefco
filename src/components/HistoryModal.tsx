@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Clock, FileDown, RotateCcw, Trash2, ShieldCheck, Lock, AlertCircle, Ban } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Clock, FileDown, RotateCcw, Trash2, ShieldCheck, Lock, AlertCircle, Ban, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ProgramacionResultado, UserProfile } from '../types';
 import { formatDateVisual } from '../utils/textUtils';
@@ -28,6 +28,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   currentUser,
   activeRole = 'tecnico'
 }) => {
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
   if (!isOpen) return null;
 
   const isAdmin = activeRole === 'admin' || currentUser?.role === 'admin';
@@ -85,11 +87,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   type="button"
-                  onClick={() => {
-                    if (confirm('¿Está seguro de eliminar TODO el historial de cronogramas de la base de datos? Esta acción no se puede deshacer.')) {
-                      onClearHistory?.();
-                    }
-                  }}
+                  onClick={() => setShowClearConfirm(true)}
                   className="text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 px-3 py-1.5 rounded-xl uppercase tracking-wider transition-colors cursor-pointer border border-red-200 dark:border-red-900/40 flex items-center gap-1 font-display"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -259,6 +257,65 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             </motion.button>
           </div>
         </motion.div>
+
+        {/* Are You Sure? Confirmation Step Overlay */}
+        <AnimatePresence>
+          {showClearConfirm && (
+            <div className="fixed inset-0 bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 12 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 font-display"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-2xl shrink-0">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wide">
+                      ¿Eliminar todo el historial?
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Paso de confirmación de seguridad
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-red-50/70 dark:bg-red-950/30 p-3.5 rounded-xl border border-red-200/80 dark:border-red-900/50 space-y-1.5">
+                  <p className="text-xs text-red-900 dark:text-red-200 leading-relaxed font-medium">
+                    Se eliminarán permanentemente <strong className="font-extrabold underline">{history.length} registro(s)</strong> de la base de datos central y del sistema local.
+                  </p>
+                  <p className="text-[11px] text-red-700 dark:text-red-400">
+                    ⚠️ Esta acción no se puede deshacer ni recuperar posteriormente.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirm(false)}
+                    className="px-4 py-2 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClearHistory?.();
+                      setShowClearConfirm(false);
+                    }}
+                    className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Sí, Limpiar Historial</span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </AnimatePresence>
   );
