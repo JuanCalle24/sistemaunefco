@@ -212,7 +212,7 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 required
-                placeholder="Ej: 6849201"
+                placeholder="Ingrese C.I. numérico..."
                 value={ci}
                 onChange={(e) => onChangeCi(e.target.value.replace(/[^0-9]/g, ''))}
                 className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-xs font-mono font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none"

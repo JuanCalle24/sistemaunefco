@@ -222,9 +222,9 @@ export default function App() {
   const [modo, setModo] = useState<'automatico' | 'manual'>('automatico');
 
   // Personal
-  const [facilitador, setFacilitador] = useState<string>('M.Sc. Roberto Paredes');
-  const [ci, setCi] = useState<string>('6849201');
-  const [tecnico, setTecnico] = useState<string>('Juan Carlos Calle');
+  const [facilitador, setFacilitador] = useState<string>('');
+  const [ci, setCi] = useState<string>('');
+  const [tecnico, setTecnico] = useState<string>(() => currentUser?.displayName || 'JUAN CARLOS CALLE CHAVEZ');
 
   const [savedDocentes, setSavedDocentes] = useState<string[]>(() => {
     const local = localStorage.getItem('unefco_docentes');
