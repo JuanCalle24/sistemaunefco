@@ -91,10 +91,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Live Clock */}
         <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded text-xs text-zinc-500 dark:text-zinc-400 border border-transparent">
           <Calendar className="w-3.5 h-3.5 text-zinc-400" />
-          <span>{dateStr}</span>
+          <span className="font-numeric">{dateStr}</span>
           <span className="text-zinc-300 dark:text-zinc-700">•</span>
           <Clock className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="font-mono text-zinc-600 dark:text-zinc-300">{timeStr}</span>
+          <span className="font-numeric text-zinc-600 dark:text-zinc-300">{timeStr}</span>
         </div>
 
         {/* Dark Mode Toggle */}

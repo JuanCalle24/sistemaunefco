@@ -1,6 +1,60 @@
 @import "tailwindcss";
 
+:root {
+  --font-sans: 'Satoshi', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Asana Light Theme Variables */
+  --bg-app: #FFFFFF;
+  --bg-sidebar: #FAFAFA;
+  --bg-hover: #F5F5F4;
+  --bg-card: #FFFFFF;
+
+  --border: #E8E8E6;
+  --border-strong: #D6D6D3;
+
+  --ink-primary: #151515;
+  --ink-secondary: #6B6B6B;
+  --ink-tertiary: #9E9E9E;
+
+  --accent: #7B68EE;
+  --accent-hover: #6A57DC;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dark, [data-theme="dark"] {
+  --bg-app: #1A1B1E;
+  --bg-sidebar: #141517;
+  --bg-hover: #26272B;
+  --bg-card: #202124;
+
+  --border: #2E3035;
+  --border-strong: #3F4248;
+
+  --ink-primary: #F2F2F2;
+  --ink-secondary: #A8A8A8;
+  --ink-tertiary: #757575;
+}
+
 @variant dark (&:where(.dark, .dark *));
+
+/* CRITICAL: Force typography inheritance across all elements, inputs, buttons, and popups */
+*, *::before, *::after {
+  font-family: inherit;
+}
+
+html, body {
+  font-family: var(--font-sans);
+}
+
+input, button, select, textarea, optgroup {
+  font-family: inherit;
+}
 
 @layer base {
   html {
@@ -10,60 +64,84 @@
   }
   
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--font-sans);
     line-height: 1.5;
-    letter-spacing: -0.01em;
-    background-color: #f8f9fa;
-    color: #1f2125;
+    letter-spacing: -0.012em;
+    background-color: var(--bg-app);
+    color: var(--ink-primary);
   }
 
-  .dark body {
-    background-color: #1e1f21;
-    color: #f1f1f2;
+  h1, h2, h3, h4, h5, h6, .font-display, .font-heading {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  body, p, .font-body {
+    font-family: var(--font-sans);
+    font-weight: 400;
+  }
+
+  .font-label, label, .badge {
+    font-family: var(--font-sans);
+    font-weight: 500;
   }
 }
 
+/* Numeric & Tabular Data Rule: Uses Satoshi + tabular-nums (No separate monospace font) */
+.font-numeric, .font-mono, time, .date-input, .transaction-code,
+.badge-days, [data-numeric] {
+  font-family: var(--font-sans) !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Override all third-party datepickers, calendars, popovers, portals to Satoshi */
+[class*="datepicker"],
+[class*="calendar"],
+[class*="popover"],
+[class*="picker"],
+.react-datepicker,
+.react-datepicker__header,
+.react-datepicker__day,
+.react-datepicker__current-month {
+  font-family: var(--font-sans) !important;
+}
+
+.react-datepicker__day,
+.react-datepicker__day-name,
+[class*="calendar"] button,
+[class*="datepicker"] span {
+  font-variant-numeric: tabular-nums !important;
+  font-weight: 500;
+}
+
 @layer utilities {
-  .font-display {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  .font-display, .font-heading {
+    font-family: var(--font-sans);
   }
-  .font-sans {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  .font-sans, .font-body {
+    font-family: var(--font-sans);
   }
-  .font-mono {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  .font-mono, .font-numeric {
+    font-family: var(--font-sans) !important;
+    font-variant-numeric: tabular-nums !important;
+    font-feature-settings: "tnum" 1 !important;
   }
 
+  /* Asana-style cards & panels */
   .glass-card {
-    background: #ffffff;
-    border: 1px solid #e1e2e6;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  }
-
-  .dark .glass-card {
-    background: #252628;
-    border: 1px solid #333438;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
   }
 
   .glass-panel {
-    background: #ffffff;
-    border: 1px solid #e1e2e6;
-  }
-
-  .dark .glass-panel {
-    background: #252628;
-    border: 1px solid #333438;
-  }
-
-  .active-glow {
-    box-shadow: none;
-  }
-
-  .ambient-bloom {
-    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
   }
 
   .bento-grid {
@@ -72,6 +150,28 @@
     gap: 16px;
   }
 }
+
+/* Asana Style Clean Pill Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.badge-warning { background: #FFF4E5; color: #B5750A; }
+.badge-danger  { background: #FDECEC; color: #C4302B; }
+.badge-success { background: #E8F7EE; color: #147A3A; }
+.badge-neutral { background: var(--bg-hover); color: var(--ink-secondary); }
+
+.dark .badge-warning { background: rgba(181, 117, 10, 0.2); color: #F5C06B; }
+.dark .badge-danger  { background: rgba(196, 48, 43, 0.2); color: #F87171; }
+.dark .badge-success { background: rgba(20, 122, 58, 0.2); color: #4ADE80; }
+.dark .badge-neutral { background: var(--bg-hover); color: var(--ink-secondary); }
 
 /* Custom scrollbars */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -97,7 +197,7 @@
 
 /* Minimal focus ring */
 *:focus-visible {
-  outline: 2px solid #4a5568 !important;
+  outline: 2px solid #7B68EE !important;
   outline-offset: 1px !important;
 }
 

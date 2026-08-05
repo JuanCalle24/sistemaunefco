@@ -257,6 +257,12 @@ export default function App() {
     return new Date(2026, 6, 22); // 22/07/2026
   });
 
+  // Course 1 Start Date (independent of contract start)
+  const [fechaInicioCurso1, setFechaInicioCurso1] = useState<Date | null>(null);
+
+  // Scheduling Density Regulator (holgura in days)
+  const [holguraDias, setHolguraDias] = useState<number>(0);
+
   // Manual Date Inputs map (key: slotId-cursoIndex -> dateStr YYYY-MM-DD)
   const [manualDatesMap, setManualDatesMap] = useState<Record<string, string>>({});
 
@@ -493,7 +499,9 @@ export default function App() {
         tecnico,
         selectedDate,
         feriadosLocales,
-        ci
+        ci,
+        fechaInicioCurso1,
+        holguraDias
       );
 
       if (errorMsg) {
@@ -900,6 +908,10 @@ export default function App() {
               onUpdateMatrixRow={handleUpdateMatrixRow}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
+              fechaInicioCurso1={fechaInicioCurso1}
+              onSelectFechaInicioCurso1={setFechaInicioCurso1}
+              holguraDias={holguraDias}
+              onChangeHolguraDias={setHolguraDias}
               feriadosCustom={feriadosLocales}
               onGenerar={handleGenerar}
               isGenerating={isGenerating}

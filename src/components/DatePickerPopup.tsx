@@ -6,7 +6,12 @@ import { FERIADOS_BOLIVIA_2026 } from '../data/feriadosBolivia';
 interface DatePickerPopupProps {
   selectedDate: Date | null;
   onSelectDate: (d: Date) => void;
-  feriadosCustom: string[];
+  feriadosCustom?: string[];
+  minDate?: Date | null;
+  title?: string;
+  subtitle?: string;
+  placeholder?: string;
+  buttonClassName?: string;
 }
 
 const MESES = [
@@ -27,7 +32,12 @@ const DIAS_SEMANA = [
 export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
   selectedDate,
   onSelectDate,
-  feriadosCustom
+  feriadosCustom = [],
+  minDate = null,
+  title = "INICIO DE FECHA",
+  subtitle = "Selecciona una fecha hábil (Lun-Sáb)",
+  placeholder = "Seleccionar fecha...",
+  buttonClassName
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(selectedDate ? selectedDate.getMonth() : new Date().getMonth());
@@ -39,12 +49,15 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
       if (selectedDate) {
         setViewMonth(selectedDate.getMonth());
         setViewYear(selectedDate.getFullYear());
+      } else if (minDate) {
+        setViewMonth(minDate.getMonth());
+        setViewYear(minDate.getFullYear());
       } else {
         setViewMonth(new Date().getMonth());
         setViewYear(2026);
       }
     }
-  }, [isOpen, selectedDate]);
+  }, [isOpen, selectedDate, minDate]);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -85,6 +98,8 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const minDateNormalized = minDate ? new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate(), 0, 0, 0, 0) : null;
+
   const days: React.ReactNode[] = [];
 
   // Empty leading slots for alignment (Monday-start grid)
@@ -98,12 +113,13 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
     const iso = formatDateISO(dayDate);
     const isSun = dayDate.getDay() === 0;
     const isHol = allHolidays.includes(iso);
-    const isDisabled = isSun || isHol;
+    const isBeforeMin = minDateNormalized ? dayDate < minDateNormalized : false;
+    const isDisabled = isSun || isHol || isBeforeMin;
 
     const isSelected = selectedDate && selectedDate.toDateString() === dayDate.toDateString();
     const isToday = dayDate.toDateString() === today.toDateString();
 
-    let cellClass = "h-9 w-9 text-xs font-bold rounded-full flex items-center justify-center transition-all duration-150 cursor-pointer ";
+    let cellClass = "h-9 w-9 text-xs font-bold font-numeric rounded-full flex items-center justify-center transition-all duration-150 cursor-pointer ";
 
     if (isSelected) {
       cellClass += "bg-indigo-600 text-white font-extrabold shadow-md ring-2 ring-indigo-300 dark:ring-indigo-800 scale-105";
@@ -115,6 +131,12 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
       cellClass += "text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400";
     }
 
+    const titleText = isBeforeMin 
+      ? `No permitido: fecha anterior al mínimo (${minDateNormalized ? formatDateVisual(minDateNormalized, false) : ''})` 
+      : isHol ? "Feriado no hábil" 
+      : isSun ? "Domingo no hábil" 
+      : formatDateVisual(dayDate, true);
+
     days.push(
       <button
         type="button"
@@ -125,12 +147,14 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
           setIsOpen(false);
         }}
         className={cellClass}
-        title={isHol ? "Feriado no hábil" : isSun ? "Domingo no hábil" : formatDateVisual(dayDate, true)}
+        title={titleText}
       >
         {d}
       </button>
     );
   }
+
+  const defaultBtnStyle = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-600 dark:hover:border-indigo-500 rounded-sm px-3 py-2 text-xs cursor-pointer flex items-center justify-between shadow-2xs transition-colors group";
 
   return (
     <div className="w-full">
@@ -138,10 +162,10 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-600 dark:hover:border-indigo-500 rounded-sm px-3 py-2 text-xs cursor-pointer flex items-center justify-between shadow-2xs transition-colors group"
+        className={buttonClassName || defaultBtnStyle}
       >
-        <span className={selectedDate ? "font-bold text-indigo-950 dark:text-indigo-200" : "text-slate-400 dark:text-slate-500 font-semibold"}>
-          {selectedDate ? formatDateVisual(selectedDate, true) : "Seleccionar fecha de inicio..."}
+        <span className={selectedDate ? "font-bold font-numeric text-indigo-950 dark:text-indigo-200" : "text-slate-400 dark:text-slate-500 font-semibold"}>
+          {selectedDate ? formatDateVisual(selectedDate, true) : placeholder}
         </span>
         <CalendarIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
       </button>
@@ -163,10 +187,10 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
-                    Inicio de Contrato
+                    {title}
                   </h3>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                    Selecciona una fecha hábil (Lun-Sáb)
+                    {subtitle}
                   </p>
                 </div>
               </div>

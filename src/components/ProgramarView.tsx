@@ -65,6 +65,10 @@ interface ProgramarViewProps {
   
   selectedDate: Date | null;
   onSelectDate: (d: Date) => void;
+  fechaInicioCurso1?: Date | null;
+  onSelectFechaInicioCurso1?: (d: Date) => void;
+  holguraDias?: number;
+  onChangeHolguraDias?: (h: number) => void;
   feriadosCustom: string[];
   
   onGenerar: () => void;
@@ -97,6 +101,10 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
   onUpdateMatrixRow,
   selectedDate,
   onSelectDate,
+  fechaInicioCurso1,
+  onSelectFechaInicioCurso1,
+  holguraDias = 0,
+  onChangeHolguraDias,
   feriadosCustom,
   onGenerar,
   isGenerating,
@@ -300,19 +308,111 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
-              Inicio de Contrato
-            </label>
-            <DatePickerPopup
-              selectedDate={selectedDate}
-              onSelectDate={onSelectDate}
-              feriadosCustom={feriadosCustom}
-            />
-            <p className="text-[10px] text-zinc-400 mt-1">
-              Límite estricto de 100 días calendario.
-            </p>
+          {/* Contract Start & Course 1 Start Dates */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block flex items-center gap-1.5">
+                <CalendarDays className="w-3.5 h-3.5 text-zinc-500" />
+                <span>Inicio de Contrato</span>
+              </label>
+              <DatePickerPopup
+                selectedDate={selectedDate}
+                onSelectDate={onSelectDate}
+                feriadosCustom={feriadosCustom}
+                title="INICIO DE CONTRATO"
+                subtitle="Define el margen límite de 100 días"
+              />
+              <p className="text-[10px] text-zinc-400">
+                Límite de 100 días calendario.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#4573d2] dark:text-[#6b93e8] block flex items-center gap-1.5">
+                <CalendarCheck className="w-3.5 h-3.5" />
+                <span>Inicio Curso 1 (Ciclo 1)</span>
+              </label>
+              <DatePickerPopup
+                selectedDate={fechaInicioCurso1 || selectedDate}
+                onSelectDate={(d) => onSelectFechaInicioCurso1 && onSelectFechaInicioCurso1(d)}
+                feriadosCustom={feriadosCustom}
+                minDate={selectedDate}
+                title="INICIO CURSO 1 / CICLO 1"
+                subtitle="Escalona el inicio de los siguientes cursos"
+                buttonClassName="w-full bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 hover:border-indigo-600 rounded-sm px-3 py-2 text-xs cursor-pointer flex items-center justify-between shadow-2xs transition-colors group"
+              />
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                Define el arranque del Curso 1.
+              </p>
+            </div>
           </div>
+
+          {/* Scheduling Density Regulator (Modo Automático) */}
+          {modo === 'automatico' && (
+            <div className="space-y-2 pt-2 border-t border-zinc-200 dark:border-[#333438]">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Sliders className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Regulador de Holgura (Ritmo)</span>
+                </label>
+                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                  {holguraDias === 0
+                    ? 'Ajustado (0 días de descanso)'
+                    : `+${holguraDias} día(s) de holgura entre cursos`}
+                </span>
+              </div>
+
+              {/* Range Input Slider */}
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={holguraDias}
+                onChange={(e) => onChangeHolguraDias && onChangeHolguraDias(Number(e.target.value))}
+                className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+
+              {/* Stagger Presets Buttons */}
+              <div className="flex gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onChangeHolguraDias && onChangeHolguraDias(0)}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                    holguraDias === 0
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
+                  }`}
+                >
+                  ⚡ Ajustado (5 Ciclos)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onChangeHolguraDias && onChangeHolguraDias(3)}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                    holguraDias === 3
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
+                  }`}
+                >
+                  ⚖️ Medio (3 Ciclos)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onChangeHolguraDias && onChangeHolguraDias(7)}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                    holguraDias === 7
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
+                  }`}
+                >
+                  ☕ Holgado (2 Ciclos)
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -467,14 +567,19 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
           type="button"
           onClick={onGenerar}
           disabled={!isValid || isGenerating}
-          className="flex-1 bg-[#4573d2] hover:bg-[#3866c6] disabled:opacity-50 text-white font-medium text-xs uppercase tracking-wider py-2.5 px-5 rounded transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          className="flex-1 bg-[#4573d2] hover:bg-[#3866c6] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider py-3 px-5 rounded-md shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           {isGenerating ? (
-            <span>Calculando...</span>
+            <span>Procesando Guardado...</span>
+          ) : modo === 'manual' ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-white" />
+              <span>Confirmar y Guardar Programación Manual</span>
+            </>
           ) : (
             <>
               <CalendarCheck className="w-4 h-4 text-white" />
-              <span>Generar Cronograma de Ejecución</span>
+              <span>Generar y Guardar Cronograma de Ejecución</span>
             </>
           )}
         </button>

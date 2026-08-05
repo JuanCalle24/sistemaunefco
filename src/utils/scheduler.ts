@@ -13,6 +13,15 @@ export function addDays(date: Date, days: number): Date {
   return res;
 }
 
+export function getValidFinDate(inicio: Date, duracionDias: number, feriadosCustom: string[] = []): Date {
+  let fin = addDays(inicio, duracionDias - 1);
+  // If fin falls on Sunday or Holiday, adjust to preceding valid work day (or if equal to inicio, next work day)
+  while (!isWorkDay(fin, feriadosCustom) && fin > inicio) {
+    fin = addDays(fin, -1);
+  }
+  return fin;
+}
+
 export function generateSecurityHash(data: {
   facilitador: string;
   asignaciones: CursoProgramado[];
@@ -39,11 +48,15 @@ export function calculateSchedulerAuto(
   fechaInicioContrato: Date,
   feriadosCustom: string[] = [],
   ci?: string,
-  ciComplemento?: string
+  fechaInicioCurso1?: Date | null,
+  holguraDias: number = 0
 ): { resultado: ProgramacionResultado | null; errorMsg: string | null } {
   const inicioContrato = new Date(fechaInicioContrato);
   inicioContrato.setHours(0, 0, 0, 0);
   const limiteContrato = addDays(inicioContrato, 99); // 100 days inclusive
+
+  const startC1 = fechaInicioCurso1 ? new Date(fechaInicioCurso1) : new Date(inicioContrato);
+  startC1.setHours(0, 0, 0, 0);
 
   const asignaciones: CursoProgramado[] = [];
   const iniciosUsados = new Set<string>();
@@ -66,66 +79,72 @@ export function calculateSchedulerAuto(
 
       let fechaMinima: Date;
       if (wave === 0) {
-        // Objective start date logic: stagger by adding slotIdx days
-        fechaMinima = addDays(inicioContrato, slotIdx);
+        // Stagger slot initial starts based on startC1 and holguraDias
+        fechaMinima = addDays(startC1, slotIdx * Math.max(1, holguraDias));
       } else {
         const prevCourse = asignaciones.find(
           a => a.slotId === slot.id && a.cursoIndex === wave - 1
         );
         if (!prevCourse) continue;
-        fechaMinima = addDays(prevCourse.fin, 1);
+        fechaMinima = addDays(prevCourse.fin, 1 + Math.max(0, holguraDias));
       }
 
       let inicioValido: Date | null = null;
       let fechaBusqueda = new Date(fechaMinima);
 
       while (!inicioValido && fechaBusqueda <= limiteContrato) {
-        // duration in days inclusive -> fin = inicio + duration - 1
-        const finPotencial = addDays(fechaBusqueda, slot.duracionCurso - 1);
-        const mesKey = `${fechaBusqueda.getFullYear()}-${String(fechaBusqueda.getMonth() + 1).padStart(2, '0')}`;
-        const isoInicio = formatDateISO(fechaBusqueda);
+          // duration in days inclusive -> fin = inicio + duration - 1 (adjusted so it never lands on Sunday/Holiday)
+          const finPotencial = getValidFinDate(fechaBusqueda, slot.duracionCurso, feriadosCustom);
+          const mesKey = `${fechaBusqueda.getFullYear()}-${String(fechaBusqueda.getMonth() + 1).padStart(2, '0')}`;
+          const isoInicio = formatDateISO(fechaBusqueda);
 
-        const okInicio = isWorkDay(fechaBusqueda, feriadosCustom);
-        const okFin = isWorkDay(finPotencial, feriadosCustom);
-        const okUnicidad = !iniciosUsados.has(isoInicio);
-        const okTopeMes = (iniciosPorMes[mesKey] || 0) < 5;
-        const okVentana = fechaBusqueda <= limiteContrato && finPotencial <= limiteContrato;
+          const okInicio = isWorkDay(fechaBusqueda, feriadosCustom);
+          const okFin = isWorkDay(finPotencial, feriadosCustom);
+          const okUnicidad = !iniciosUsados.has(isoInicio);
+          const okTopeMes = (iniciosPorMes[mesKey] || 0) < 5;
+          const okVentana = fechaBusqueda <= limiteContrato && finPotencial <= limiteContrato;
 
-        if (okInicio && okFin && okUnicidad && okTopeMes && okVentana) {
-          inicioValido = new Date(fechaBusqueda);
-          iniciosUsados.add(isoInicio);
-          iniciosPorMes[mesKey] = (iniciosPorMes[mesKey] || 0) + 1;
+          if (okInicio && okFin && okUnicidad && okTopeMes && okVentana) {
+            inicioValido = new Date(fechaBusqueda);
+            iniciosUsados.add(isoInicio);
+            iniciosPorMes[mesKey] = (iniciosPorMes[mesKey] || 0) + 1;
 
-          // Sesión 2: inicio + 5d, adjusted to next valid work day
-          let sesion2 = addDays(inicioValido, 5);
-          while (!isWorkDay(sesion2, feriadosCustom)) {
-            sesion2 = addDays(sesion2, 1);
-          }
+            // Sesión 2: inicio + 5d, adjusted to next valid work day
+            let sesion2 = addDays(inicioValido, 5);
+            while (!isWorkDay(sesion2, feriadosCustom)) {
+              sesion2 = addDays(sesion2, 1);
+            }
 
-          // Sesión 3: inicio + 10d, adjusted to next valid work day
-          let sesion3 = addDays(inicioValido, 10);
-          while (!isWorkDay(sesion3, feriadosCustom)) {
-            sesion3 = addDays(sesion3, 1);
-          }
+            // Sesión 3: inicio + 10d, adjusted to next valid work day
+            let sesion3 = addDays(inicioValido, 10);
+            while (!isWorkDay(sesion3, feriadosCustom)) {
+              sesion3 = addDays(sesion3, 1);
+            }
 
-          asignaciones.push({
-            slotId: slot.id,
-            cat: slot.cat,
-            cicloId: slot.cicloId,
-            cicloNombre: slot.cicloNombre,
-            lugar: slot.lugar,
-            modalidad: slot.modalidad,
-            cicloNumero: slotIdx + 1,
-            cursoIndex: wave,
-            cursoNombre: slot.cursos[wave],
-            inicio: inicioValido,
-            fin: finPotencial,
-            planificacion: inicioValido,
-            informeFinal: addDays(finPotencial, 3),
-            sesion2,
-            sesion3,
-            esManual: false
-          });
+            // Informe Final: fin + 3d, adjusted to next valid work day
+            let informeFinal = addDays(finPotencial, 3);
+            while (!isWorkDay(informeFinal, feriadosCustom)) {
+              informeFinal = addDays(informeFinal, 1);
+            }
+
+            asignaciones.push({
+              slotId: slot.id,
+              cat: slot.cat,
+              cicloId: slot.cicloId,
+              cicloNombre: slot.cicloNombre,
+              lugar: slot.lugar,
+              modalidad: slot.modalidad,
+              cicloNumero: slotIdx + 1,
+              cursoIndex: wave,
+              cursoNombre: slot.cursos[wave],
+              inicio: inicioValido,
+              fin: finPotencial,
+              planificacion: inicioValido,
+              informeFinal,
+              sesion2,
+              sesion3,
+              esManual: false
+            });
         } else {
           fechaBusqueda = addDays(fechaBusqueda, 1);
         }
@@ -134,7 +153,7 @@ export function calculateSchedulerAuto(
       if (!inicioValido) {
         return {
           resultado: null,
-          errorMsg: `No fue posible asignar el Curso ${wave + 1} del ciclo "${slot.cicloId}" dentro del margen de 100 días de contrato sin violar reglas. Intente ajustar el número de asignaciones o modificar las fechas.`
+          errorMsg: `No fue posible asignar el Curso ${wave + 1} del ciclo "${slot.cicloId}" dentro del margen de 100 días de contrato. Pruebe reducir el nivel de holgura o ajustar la fecha de inicio del curso.`
         };
       }
     }
@@ -153,7 +172,6 @@ export function calculateSchedulerAuto(
     slots,
     facilitador,
     ci,
-    ciComplemento,
     tecnico,
     fechaInicioContrato: inicioContrato,
     limiteContrato,
@@ -197,7 +215,15 @@ export function calculateSchedulerManual(
 
       const [y, m, d] = inp.inicioStr.split('-').map(Number);
       const inicio = new Date(y, m - 1, d, 0, 0, 0, 0);
-      const fin = addDays(inicio, slot.duracionCurso - 1);
+      const fin = getValidFinDate(inicio, slot.duracionCurso, feriadosCustom);
+
+      // Overlap Check with previous course in same slot
+      if (cIdx > 0) {
+        const prevAsignacion = asignaciones.find(a => a.slotId === slot.id && a.cursoIndex === cIdx - 1);
+        if (prevAsignacion && inicio < prevAsignacion.fin) {
+          warnings.push(`[${slot.cicloId} C${cIdx + 1}] RESTRICCIÓN DE SOLAPAMIENTO: La fecha de inicio (${formatDateISO(inicio)}) es anterior a la finalización del Curso ${cIdx} (${formatDateISO(prevAsignacion.fin)}). No está permitido solapar fechas.`);
+        }
+      }
 
       // Warning checks
       if (!isWorkDay(inicio, feriadosCustom)) {
@@ -220,6 +246,11 @@ export function calculateSchedulerManual(
         sesion3 = addDays(sesion3, 1);
       }
 
+      let informeFinal = addDays(fin, 3);
+      while (!isWorkDay(informeFinal, feriadosCustom)) {
+        informeFinal = addDays(informeFinal, 1);
+      }
+
       asignaciones.push({
         slotId: slot.id,
         cat: slot.cat,
@@ -233,7 +264,7 @@ export function calculateSchedulerManual(
         inicio,
         fin,
         planificacion: inicio,
-        informeFinal: addDays(fin, 3),
+        informeFinal,
         sesion2,
         sesion3,
         esManual: true

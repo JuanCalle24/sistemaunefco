@@ -4,6 +4,23 @@ import { ProgramacionResultado, CursoProgramado } from '../types';
 
 const SCHEDULES_COLLECTION = 'schedules';
 
+// Helper to strip undefined values so Firestore setDoc does not throw unsupported field errors
+function cleanUndefined(obj: any): any {
+  if (obj === undefined) return null;
+  if (obj === null) return null;
+  if (Array.isArray(obj)) return obj.map(cleanUndefined);
+  if (typeof obj === 'object' && !(obj instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const key of Object.keys(obj)) {
+      if (obj[key] !== undefined) {
+        cleaned[key] = cleanUndefined(obj[key]);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 // Helper to safely convert Date objects to ISO strings for Firestore storage
 function serializeSchedule(schedule: ProgramacionResultado): Record<string, any> {
   const docId = schedule.idTransaccion || `TRANS-${Date.now()}`;
@@ -18,7 +35,7 @@ function serializeSchedule(schedule: ProgramacionResultado): Record<string, any>
     sesion3: asig.sesion3 instanceof Date ? asig.sesion3.toISOString() : asig.sesion3,
   }));
 
-  return {
+  const payload = {
     ...schedule,
     idTransaccion: docId,
     fechaInicioContrato: schedule.fechaInicioContrato instanceof Date 
@@ -27,9 +44,12 @@ function serializeSchedule(schedule: ProgramacionResultado): Record<string, any>
     limiteContrato: schedule.limiteContrato instanceof Date 
       ? schedule.limiteContrato.toISOString() 
       : schedule.limiteContrato,
+    fechaAnulacion: schedule.fechaAnulacion,
     asignaciones: serializedAsignaciones,
     updatedAt: new Date().toISOString()
   };
+
+  return cleanUndefined(payload);
 }
 
 // Helper to convert Firestore JSON back to ProgramacionResultado with JS Date objects

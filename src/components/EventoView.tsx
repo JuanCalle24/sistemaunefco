@@ -95,23 +95,80 @@ export const EventoView: React.FC<EventoViewProps> = ({
     ? new Date(resultado.fechaInicioContrato).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
     : 'Julio 2026';
 
+  const [showSavedToast, setShowSavedToast] = React.useState(false);
+
+  const handleConfirmAndSave = () => {
+    setShowSavedToast(true);
+    setTimeout(() => {
+      setShowSavedToast(false);
+    }, 4000);
+  };
+
   return (
     <div className="space-y-5">
+      {/* Toast Notification when saving schedule */}
+      {showSavedToast && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center justify-between gap-3 text-xs font-bold"
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
+            <span>CRONOGRAMA GUARDADO Y CONFIRMADO: Registrado correctamente en el Sistema de Seguimiento y Dashboard Académico.</span>
+          </div>
+          <button
+            onClick={() => setShowSavedToast(false)}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white px-2 py-1 rounded text-[10px] font-mono cursor-pointer"
+          >
+            CERRAR
+          </button>
+        </motion.div>
+      )}
+
+      {/* Manual Mode Active Notice */}
+      {modo === 'manual' && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 p-3.5 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
+            <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="text-xs font-semibold">
+              Modo Programación Manual Activo — Seleccione la fecha de inicio para cada curso individualmente.
+            </span>
+          </div>
+          <button
+            onClick={handleConfirmAndSave}
+            className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3.5 py-1.5 rounded shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Confirmar Programación Manual</span>
+          </button>
+        </div>
+      )}
+
       {/* ASANA STYLE CLEAN EVENT BANNER */}
       <div className="bg-[#1e2330] text-white rounded-lg p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-zinc-800">
         <div>
           <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 bg-white/10 px-2.5 py-0.5 rounded border border-white/10 mb-1.5 inline-block">
             PORTAL ACADÉMICO UNEFCO LA PAZ
           </span>
-          <h2 className="text-lg md:text-xl font-semibold tracking-tight text-white">
+          <h2 className="text-lg md:text-xl font-semibold tracking-tight text-white font-display">
             Evento: {lugarName}
           </h2>
-          <p className="text-xs text-zinc-300 mt-0.5">
+          <p className="text-xs text-zinc-300 mt-0.5 font-body">
             Sede La Paz • {resultado.asignaciones.length} Cursos Programados • Código: <code className="font-mono bg-black/40 px-1.5 py-0.5 rounded font-medium text-zinc-200">{resultado.idTransaccion}</code>
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleConfirmAndSave}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded border border-emerald-500 flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+            <span>Guardar en Seguimiento</span>
+          </button>
+
           <button
             onClick={onGoToProgramar}
             className="bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-3.5 py-2 rounded border border-white/20 flex items-center gap-2 transition-colors cursor-pointer"

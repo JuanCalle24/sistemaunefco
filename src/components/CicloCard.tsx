@@ -1,7 +1,9 @@
 import React from 'react';
 import { SlotAsignacion, CursoProgramado } from '../types';
-import { formatDateVisual } from '../utils/textUtils';
+import { formatDateVisual, formatDateISO } from '../utils/textUtils';
 import { getAlertSeverity } from '../utils/alertUtils';
+import { DatePickerPopup } from './DatePickerPopup';
+import { addDays } from '../utils/scheduler';
 import { MapPin, BookOpen, Clock, AlertCircle, CheckCircle2, PlayCircle, Globe, Monitor, ShieldAlert } from 'lucide-react';
 
 interface CicloCardProps {
@@ -47,8 +49,8 @@ export const CicloCard: React.FC<CicloCardProps> = ({
           />
           <div>
             <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-              <span>{slot.cicloId}</span>
-              <span className="text-[10px] font-extrabold text-[#4648d4] dark:text-[#c0c1ff] bg-[#4648d4]/10 dark:bg-[#4648d4]/20 border border-[#4648d4]/30 px-2.5 py-0.5 rounded-full">
+              <span className="font-numeric">{slot.cicloId}</span>
+              <span className="text-[10px] font-extrabold font-numeric text-[#4648d4] dark:text-[#c0c1ff] bg-[#4648d4]/10 dark:bg-[#4648d4]/20 border border-[#4648d4]/30 px-2.5 py-0.5 rounded-full">
                 Asignación #{index + 1}
               </span>
             </h3>
@@ -72,7 +74,7 @@ export const CicloCard: React.FC<CicloCardProps> = ({
           </div>
 
           <span
-            className="px-3 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-wider shadow-sm"
+            className="px-3 py-1.5 rounded-full text-[10px] font-black font-numeric text-white uppercase tracking-wider shadow-sm"
             style={{ backgroundColor: catColor }}
           >
             {slot.cat === 'TACFI' ? '30 Días / Curso' : '15 Días / Curso'}
@@ -112,6 +114,25 @@ export const CicloCard: React.FC<CicloCardProps> = ({
           const manualKey = `${slot.id}-${cIdx}`;
           const currentManualVal = manualDates[manualKey] || '';
 
+          // Determine minimum allowed date for manual picker (must be >= end of previous course)
+          let minDateForCourse: Date | null = null;
+          if (cIdx > 0) {
+            const prevCourseProgramado = cursos.find(c => c.cursoIndex === cIdx - 1);
+            if (prevCourseProgramado) {
+              minDateForCourse = prevCourseProgramado.fin;
+            } else {
+              const prevKey = `${slot.id}-${cIdx - 1}`;
+              const prevVal = manualDates[prevKey];
+              if (prevVal) {
+                const [py, pm, pd] = prevVal.split('-').map(Number);
+                const prevStart = new Date(py, pm - 1, pd, 0, 0, 0, 0);
+                minDateForCourse = addDays(prevStart, slot.duracionCurso - 1);
+              }
+            }
+          }
+
+          const selectedDateObj = currentManualVal ? new Date(currentManualVal + 'T00:00:00') : null;
+
           return (
             <div
               key={cIdx}
@@ -130,18 +151,22 @@ export const CicloCard: React.FC<CicloCardProps> = ({
 
               {/* Date Manual Picker or Automatic Display */}
               {modo === 'manual' ? (
-                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/50 p-2 rounded-2xs border border-amber-200 dark:border-amber-800">
-                  <label className="text-[10px] font-bold text-amber-900 dark:text-amber-200 uppercase">
+                <div className="flex items-center gap-2 bg-amber-50/90 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200 dark:border-amber-800/80 min-w-[260px]">
+                  <label className="text-[10px] font-bold text-amber-900 dark:text-amber-200 uppercase shrink-0">
                     Inicio C{cIdx + 1}:
                   </label>
-                  <input
-                    type="date"
-                    value={currentManualVal}
-                    onChange={e =>
-                      onManualDateChange &&
-                      onManualDateChange(slot.id, cIdx, e.target.value)
-                    }
-                    className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xs px-2 py-1 text-xs text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:border-indigo-600"
+                  <DatePickerPopup
+                    selectedDate={selectedDateObj}
+                    onSelectDate={(d) => {
+                      if (onManualDateChange) {
+                        onManualDateChange(slot.id, cIdx, formatDateISO(d));
+                      }
+                    }}
+                    minDate={minDateForCourse}
+                    title={`Inicio Curso ${cIdx + 1}`}
+                    subtitle={minDateForCourse ? `Fecha Mínima: ${formatDateVisual(minDateForCourse, false)}` : "Selecciona fecha hábil (Lun-Sáb)"}
+                    placeholder={`Fecha inicio C${cIdx + 1}...`}
+                    buttonClassName="w-full bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 hover:border-indigo-600 dark:hover:border-indigo-500 rounded px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-slate-100 cursor-pointer flex items-center justify-between shadow-2xs transition-colors group"
                   />
                 </div>
               ) : null}
