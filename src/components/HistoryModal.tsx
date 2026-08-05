@@ -80,7 +80,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {history.length > 0 && canClearAll && (
+              {history.length > 0 && (
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
@@ -210,8 +210,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         </motion.button>
                       )}
 
-                      {/* Delete Button (Strict Admin Only) */}
-                      {isAdmin ? (
+                      {/* Delete Button (Admin or Owner) */}
+                      {(isAdmin || isOwner) ? (
                         <motion.button
                           whileHover={{ scale: 1.1, rotate: 6 }}
                           whileTap={{ scale: 0.9 }}
@@ -222,11 +222,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                             }
                           }}
                           className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer"
-                          title="Eliminar permanentemente del historial (Solo Admin)"
+                          title="Eliminar permanentemente del historial"
                         >
                           <Trash2 className="w-4 h-4" />
                         </motion.button>
-                      ) : !isOwner ? (
+                      ) : (
                         <div 
                           className="p-1.5 text-zinc-400 dark:text-zinc-600 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center gap-1 text-[10px] font-bold font-display"
                           title="Solo el técnico autor o el Administrador pueden modificar este registro"
@@ -234,7 +234,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                           <Lock className="w-3.5 h-3.5 shrink-0" />
                           <span className="hidden sm:inline font-mono">Protegido</span>
                         </div>
-                      ) : null}
+                      )}
                     </div>
                   </motion.div>
                 );

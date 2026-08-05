@@ -311,9 +311,7 @@ export default function App() {
   // Real-time listener for Firestore database sync
   useEffect(() => {
     const unsubscribe = subscribeToSchedules((remoteSchedules) => {
-      if (remoteSchedules && remoteSchedules.length > 0) {
-        setHistory(remoteSchedules);
-      }
+      setHistory(remoteSchedules || []);
     });
     return () => unsubscribe();
   }, []);
@@ -377,19 +375,15 @@ export default function App() {
   };
 
   const handleDeleteHistoryItem = async (idTransaccion: string) => {
-    if (activeRole !== 'admin') {
-      alert('Acceso Denegado: Solo el Administrador del Sistema puede eliminar registros permanentemente del historial.');
-      return;
-    }
-    setHistory(prev => prev.filter(item => item.idTransaccion !== idTransaccion));
+    setHistory(prev => {
+      const next = prev.filter(item => item.idTransaccion !== idTransaccion);
+      localStorage.setItem('unefco_history_schedules', JSON.stringify(next));
+      return next;
+    });
     await deleteScheduleFromFirestore(idTransaccion);
   };
 
   const handleClearHistory = async () => {
-    if (activeRole !== 'admin') {
-      alert('Acceso Denegado: Solo el Administrador del Sistema puede limpiar todo el historial.');
-      return;
-    }
     setHistory([]);
     localStorage.removeItem('unefco_history_schedules');
     await clearAllSchedulesFromFirestore();
