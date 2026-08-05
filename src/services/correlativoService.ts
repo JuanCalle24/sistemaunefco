@@ -1,5 +1,5 @@
 import { db } from '../lib/firebase';
-import { collection, doc, setDoc, onSnapshot, query, orderBy, limit, getDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, query, orderBy, limit, getDoc } from 'firebase/firestore';
 
 export interface CorrelativoRecord {
   id: string; // e.g. "CP-001-2026"
@@ -39,6 +39,34 @@ export const DEFAULT_COUNTERS: CorrelativoCounters = {
   inf: 0,
   ini: 0
 };
+
+// Clear all correlativo records and reset counters in Firestore
+export async function clearAllCorrelativosFromFirestore(): Promise<void> {
+  try {
+    const colRef = collection(db, CORRELATIVOS_COLLECTION);
+    const snapshot = await getDocs(colRef);
+    const deletePromises = snapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
+    await Promise.all(deletePromises);
+
+    // Reset counters doc to 0
+    const counterRef = doc(db, CORRELATIVOS_COLLECTION, COUNTERS_DOC);
+    await setDoc(counterRef, DEFAULT_COUNTERS);
+    console.log('[CorrelativoService] Todos los correlativos eliminados y contadores reiniciados.');
+  } catch (error) {
+    console.error('[CorrelativoService] Error al limpiar correlativos en Firestore:', error);
+  }
+}
+
+// Reset counters doc to 0 in Firestore
+export async function resetCorrelativoCountersInFirestore(): Promise<void> {
+  try {
+    const counterRef = doc(db, CORRELATIVOS_COLLECTION, COUNTERS_DOC);
+    await setDoc(counterRef, DEFAULT_COUNTERS);
+    console.log('[CorrelativoService] Contadores reiniciados a cero.');
+  } catch (error) {
+    console.error('[CorrelativoService] Error al reiniciar contadores:', error);
+  }
+}
 
 // Save record and update counter atomically/incrementally
 export async function saveCorrelativoRecord(

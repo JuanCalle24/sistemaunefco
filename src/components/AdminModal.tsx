@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { X, UserPlus, Users, Calendar, Trash2, Plus, ShieldAlert } from 'lucide-react';
+import { X, UserPlus, Users, Calendar, Trash2, Plus, ShieldAlert, Database, AlertTriangle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { capitalizeName } from '../utils/textUtils';
 import { GRADOS_ACADEMICOS } from './Sidebar';
 import { UserProfile } from '../types';
+import { clearAllSchedulesFromFirestore } from '../services/scheduleService';
+import { clearAllCorrelativosFromFirestore, resetCorrelativoCountersInFirestore } from '../services/correlativoService';
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -33,11 +35,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   onRemoveFeriadoLocal,
   currentUser
 }) => {
-  const [activeTab, setActiveTab] = useState<'docentes' | 'coordinadores' | 'feriados'>('docentes');
+  const [activeTab, setActiveTab] = useState<'docentes' | 'coordinadores' | 'feriados' | 'dbCleanup'>('docentes');
   const [newDocenteGrado, setNewDocenteGrado] = useState('Lic.');
   const [newDocenteInput, setNewDocenteInput] = useState('');
   const [newCoordInput, setNewCoordInput] = useState('');
   const [newHolidayInput, setNewHolidayInput] = useState('');
+
+  // DB Cleanup States
+  const [dbActionLoading, setDbActionLoading] = useState(false);
+  const [dbActionStatus, setDbActionStatus] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState<'schedules' | 'correlativos' | 'counters' | 'full' | null>(null);
 
   if (!isOpen) return null;
 
@@ -73,9 +80,42 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
+  // Database cleanup actions
+  const handleExecuteDbCleanup = async () => {
+    if (!showConfirmModal || !isAdmin) return;
+    setDbActionLoading(true);
+    setDbActionStatus(null);
+
+    try {
+      if (showConfirmModal === 'schedules') {
+        await clearAllSchedulesFromFirestore();
+        localStorage.removeItem('unefco_history_schedules');
+        setDbActionStatus('¡Historial de cronogramas eliminado exitosamente de Firestore!');
+      } else if (showConfirmModal === 'correlativos') {
+        await clearAllCorrelativosFromFirestore();
+        localStorage.removeItem('unefco_correlativos_records');
+        setDbActionStatus('¡Todos los correlativos y hojas de ruta han sido eliminados de Firestore!');
+      } else if (showConfirmModal === 'counters') {
+        await resetCorrelativoCountersInFirestore();
+        setDbActionStatus('¡Contadores de correlativos (CP, INF, INI) reiniciados a cero!');
+      } else if (showConfirmModal === 'full') {
+        await clearAllSchedulesFromFirestore();
+        await clearAllCorrelativosFromFirestore();
+        localStorage.removeItem('unefco_history_schedules');
+        localStorage.removeItem('unefco_correlativos_records');
+        setDbActionStatus('¡LIMPIEZA TOTAL COMPLETADA! Firestore restablecido a cero.');
+      }
+    } catch (err: any) {
+      setDbActionStatus(`Error al realizar limpieza: ${err.message || 'Error desconocido'}`);
+    } finally {
+      setDbActionLoading(false);
+      setShowConfirmModal(null);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-zinc-950/70 dark:bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative">
         {/* Header */}
         <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -84,7 +124,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             </div>
             <div>
               <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider font-display">
-                Gestión de Personal & Feriados Locales
+                Gestión de Personal & Configuración
               </h2>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-tight">
                 Configuración Restringida UNEFCO La Paz
@@ -106,17 +146,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             <div>
               <p className="font-bold uppercase text-[11px] font-display">Acceso Restringido</p>
               <p className="text-[10px] leading-relaxed">
-                Solo el Administrador General puede agregar o modificar los catálogos de feriados y oferta académica.
+                Solo el Administrador General puede modificar listas, catálogos o realizar limpiezas en la base de datos.
               </p>
             </div>
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2 font-display">
+        <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2 font-display overflow-x-auto">
           <button
             onClick={() => setActiveTab('docentes')}
-            className={`pb-3 px-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
+            className={`pb-3 px-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === 'docentes'
                 ? 'border-emerald-600 dark:border-emerald-400 text-emerald-700 dark:text-emerald-300'
                 : 'border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
@@ -126,7 +166,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('coordinadores')}
-            className={`pb-3 px-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
+            className={`pb-3 px-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === 'coordinadores'
                 ? 'border-emerald-600 dark:border-emerald-400 text-emerald-700 dark:text-emerald-300'
                 : 'border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
@@ -136,13 +176,24 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('feriados')}
-            className={`pb-3 px-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
+            className={`pb-3 px-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === 'feriados'
                 ? 'border-emerald-600 dark:border-emerald-400 text-emerald-700 dark:text-emerald-300'
                 : 'border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
             }`}
           >
             Feriados ({feriadosLocales.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('dbCleanup')}
+            className={`pb-3 px-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+              activeTab === 'dbCleanup'
+                ? 'border-red-600 dark:border-red-400 text-red-700 dark:text-red-400'
+                : 'border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Limpieza Firestore</span>
           </button>
         </div>
 
@@ -298,6 +349,112 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Database Cleanup Tab */}
+          {activeTab === 'dbCleanup' && (
+            <div className="space-y-4 font-display">
+              <div className="bg-amber-50 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-200 dark:border-amber-900 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+                  <p className="font-bold uppercase text-[10px]">Mantenimiento General de Firestore</p>
+                  <p className="text-[11px] mt-0.5">
+                    Permite limpiar registros acumulados de prueba en la base de datos centralizada de UNEFCO La Paz.
+                  </p>
+                </div>
+              </div>
+
+              {dbActionStatus && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-xl text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>{dbActionStatus}</span>
+                </div>
+              )}
+
+              <div className="space-y-2.5">
+                {/* Clean Schedules */}
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase">
+                      Historial de Cronogramas
+                    </h4>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                      Elimina todos los cronogramas guardados en la colección <code className="font-mono text-emerald-600 dark:text-emerald-400">schedules</code>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!isAdmin || dbActionLoading}
+                    onClick={() => setShowConfirmModal('schedules')}
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold uppercase rounded-lg transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+
+                {/* Clean Correlativos */}
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase">
+                      Hojas de Ruta y Correlativos
+                    </h4>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                      Elimina todos los correlativos de contratos guardados en <code className="font-mono text-emerald-600 dark:text-emerald-400">correlativos</code>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!isAdmin || dbActionLoading}
+                    onClick={() => setShowConfirmModal('correlativos')}
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold uppercase rounded-lg transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+
+                {/* Reset Counters */}
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase">
+                      Reiniciar Contadores a 0
+                    </h4>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                      Reinicia los numeradores de correlativos CP, INF e INI a cero para inicio de gestión
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!isAdmin || dbActionLoading}
+                    onClick={() => setShowConfirmModal('counters')}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold uppercase rounded-lg transition-colors cursor-pointer shrink-0 disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Reiniciar</span>
+                  </button>
+                </div>
+
+                {/* FULL RESET */}
+                <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-900/60 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2 text-red-900 dark:text-red-200">
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                    <h4 className="text-xs font-extrabold uppercase">
+                      Restablecimiento de Fábrica General
+                    </h4>
+                  </div>
+                  <p className="text-[10px] text-red-800 dark:text-red-300 leading-relaxed">
+                    Elimina simultáneamente todo el historial de cronogramas y correlativos guardados en Firestore, restableciendo contadores a cero para la nueva gestión.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={!isAdmin || dbActionLoading}
+                    onClick={() => setShowConfirmModal('full')}
+                    className="w-full py-2 bg-red-700 hover:bg-red-800 text-white text-xs font-extrabold uppercase tracking-wider rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    {dbActionLoading ? 'Limpiando Base de Datos...' : 'EJECUTAR RESTABLECIMIENTO TOTAL FIRESTORE'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -310,7 +467,51 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             Cerrar
           </button>
         </div>
+
+        {/* Inner Confirmation Modal Overlay */}
+        {showConfirmModal && (
+          <div className="absolute inset-0 bg-zinc-950/85 backdrop-blur-xs flex items-center justify-center p-6 z-50 animate-fade-in font-display">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-2xl max-w-sm w-full space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-red-100 dark:bg-red-950/80 text-red-600 rounded-xl shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
+                    ¿Confirmar Limpieza?
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">Acción de Administrador General</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-red-900 dark:text-red-200 leading-relaxed font-medium">
+                {showConfirmModal === 'schedules' && 'Se eliminarán todos los cronogramas guardados en Firestore.'}
+                {showConfirmModal === 'correlativos' && 'Se eliminarán todos los correlativos emitidos.'}
+                {showConfirmModal === 'counters' && 'Se reiniciarán los numeradores CP, INF, INI a 0.'}
+                {showConfirmModal === 'full' && '¡ATENCIÓN! Se eliminarán todos los cronogramas, correlativos y se reiniciarán contadores en la base de datos central.'}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(null)}
+                  className="px-3 py-1.5 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteDbCleanup}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-xs uppercase tracking-wider"
+                >
+                  Sí, Ejecutar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
