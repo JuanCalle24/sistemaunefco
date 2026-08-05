@@ -85,7 +85,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   type="button"
-                  onClick={onClearHistory}
+                  onClick={() => {
+                    if (confirm('¿Está seguro de eliminar TODO el historial de cronogramas de la base de datos? Esta acción no se puede deshacer.')) {
+                      onClearHistory?.();
+                    }
+                  }}
                   className="text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 px-3 py-1.5 rounded-xl uppercase tracking-wider transition-colors cursor-pointer border border-red-200 dark:border-red-900/40 flex items-center gap-1 font-display"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

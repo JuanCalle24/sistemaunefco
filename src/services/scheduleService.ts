@@ -1,5 +1,5 @@
 import { db } from '../lib/firebase';
-import { collection, doc, setDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { ProgramacionResultado, CursoProgramado } from '../types';
 
 const SCHEDULES_COLLECTION = 'schedules';
@@ -93,6 +93,30 @@ export async function saveScheduleToFirestore(schedule: ProgramacionResultado): 
   }
 }
 
+// Delete a single schedule document from Firestore
+export async function deleteScheduleFromFirestore(docId: string): Promise<void> {
+  try {
+    const docRef = doc(db, SCHEDULES_COLLECTION, docId);
+    await deleteDoc(docRef);
+    console.log(`[Firestore] Cronograma ${docId} eliminado exitosamente.`);
+  } catch (error) {
+    console.error('[Firestore] Error al eliminar cronograma:', error);
+  }
+}
+
+// Clear all schedule documents from Firestore
+export async function clearAllSchedulesFromFirestore(): Promise<void> {
+  try {
+    const schedulesRef = collection(db, SCHEDULES_COLLECTION);
+    const snapshot = await getDocs(schedulesRef);
+    const deletePromises = snapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
+    await Promise.all(deletePromises);
+    console.log('[Firestore] Todo el historial de cronogramas ha sido eliminado.');
+  } catch (error) {
+    console.error('[Firestore] Error al limpiar todo el historial:', error);
+  }
+}
+
 // Subscribe to real-time updates for all schedules (syncs across devices and sessions)
 export function subscribeToSchedules(onUpdate: (schedules: ProgramacionResultado[]) => void): () => void {
   try {
@@ -111,9 +135,7 @@ export function subscribeToSchedules(onUpdate: (schedules: ProgramacionResultado
             console.error('[Firestore] Error deserializando documento:', err);
           }
         });
-        if (items.length > 0) {
-          onUpdate(items);
-        }
+        onUpdate(items);
       },
       (error) => {
         console.error('[Firestore] Error en listener de cronogramas:', error);

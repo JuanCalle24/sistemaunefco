@@ -33,7 +33,7 @@ import { generatePDFDocument } from './utils/pdfGenerator';
 import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
 
 import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser } from './utils/authService';
-import { saveScheduleToFirestore, subscribeToSchedules } from './services/scheduleService';
+import { saveScheduleToFirestore, subscribeToSchedules, deleteScheduleFromFirestore, clearAllSchedulesFromFirestore } from './services/scheduleService';
 import { CorrelativoRecord, subscribeToCorrelativos } from './services/correlativoService';
 import { CorrelativosModule } from './components/CorrelativosModule';
 
@@ -376,12 +376,23 @@ export default function App() {
     }
   };
 
-  const handleDeleteHistoryItem = (idTransaccion: string) => {
+  const handleDeleteHistoryItem = async (idTransaccion: string) => {
     if (activeRole !== 'admin') {
       alert('Acceso Denegado: Solo el Administrador del Sistema puede eliminar registros permanentemente del historial.');
       return;
     }
     setHistory(prev => prev.filter(item => item.idTransaccion !== idTransaccion));
+    await deleteScheduleFromFirestore(idTransaccion);
+  };
+
+  const handleClearHistory = async () => {
+    if (activeRole !== 'admin') {
+      alert('Acceso Denegado: Solo el Administrador del Sistema puede limpiar todo el historial.');
+      return;
+    }
+    setHistory([]);
+    localStorage.removeItem('unefco_history_schedules');
+    await clearAllSchedulesFromFirestore();
   };
 
   // Expand matrix rows into Slots array
@@ -1027,6 +1038,7 @@ export default function App() {
         }}
         onAnularHistoryItem={handleAnularHistoryItem}
         onDeleteHistoryItem={handleDeleteHistoryItem}
+        onClearHistory={handleClearHistory}
         currentUser={currentUser}
         activeRole={activeRole}
       />
