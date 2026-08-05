@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { 
-  OFFICIAL_TEAM_PRESETS, 
   authenticateUser, 
   seedDefaultTeamToFirestore 
 } from '../utils/authService';
@@ -11,8 +10,7 @@ import {
   Eye, 
   EyeOff, 
   AlertCircle, 
-  UserCheck,
-  Shield
+  UserCheck
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -24,7 +22,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberUser, setRememberUser] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -57,13 +54,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
     }
   };
 
-  const handleSelectUser = (preset: UserProfile) => {
-    setError(null);
-    setInfoMessage(null);
-    setIdentifier(preset.displayName);
-    setPassword('');
-  };
-
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors ${
       isDarkMode ? 'dark bg-[#1e1f21] text-zinc-100' : 'bg-[#f8f9fa] text-zinc-900'
@@ -81,11 +71,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
             </span>
           </div>
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-white tracking-tight">
-            ¿Ya tienes una cuenta?
+            Iniciar Sesión
           </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Ingresa con tus credenciales institucionales para acceder al cronograma.
-          </p>
         </div>
 
         <div className="p-6 pt-3">
@@ -154,42 +141,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
               {loading ? 'Validando...' : 'Acceder'}
             </button>
           </form>
-
-          {/* Quick Access Preset Chips */}
-          <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-[#333438]">
-            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mb-2.5 font-medium">
-              Seleccionar usuario de prueba:
-            </span>
-            <div className="space-y-1.5">
-              {OFFICIAL_TEAM_PRESETS.map((member) => (
-                <button
-                  key={member.uid}
-                  type="button"
-                  onClick={() => handleSelectUser(member)}
-                  className={`w-full px-3 py-2 rounded text-xs font-medium flex items-center justify-between transition-colors border cursor-pointer ${
-                    identifier === member.displayName 
-                      ? 'bg-zinc-100 dark:bg-[#2d2e32] border-zinc-400 dark:border-zinc-500 text-zinc-900 dark:text-white' 
-                      : 'bg-white dark:bg-[#1e1f21] border-zinc-200 dark:border-[#333438] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#28292c]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-[10px] font-bold flex items-center justify-center text-zinc-700 dark:text-zinc-200">
-                      {member.displayName.charAt(0)}
-                    </span>
-                    <span>{member.displayName}</span>
-                  </div>
-                  <span className="text-[10px] uppercase text-zinc-400 font-mono">
-                    {member.role}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Footer note matching image 1 */}
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-6 leading-relaxed text-left border-t border-zinc-100 dark:border-[#2d2e32] pt-4">
-            Si olvidó su usuario y contraseña, comuníquese con el gestor académico de su curso.
-          </p>
         </div>
       </div>
     </div>
