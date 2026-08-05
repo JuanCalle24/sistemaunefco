@@ -531,6 +531,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
               <div className="flex gap-2">
                 <input
                   type="text"
+                  autoComplete="off"
                   value={ciNum}
                   onChange={(e) => {
                     const clean = e.target.value.replace(/\D/g, '').slice(0, 9);
@@ -542,6 +543,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                 />
                 <input
                   type="text"
+                  autoComplete="off"
                   value={ciComp}
                   onChange={(e) => {
                     const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
@@ -562,6 +564,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
               </label>
               <input
                 type="text"
+                autoComplete="off"
                 value={facilitador}
                 onChange={(e) => {
                   setFacilitador(e.target.value.toUpperCase());

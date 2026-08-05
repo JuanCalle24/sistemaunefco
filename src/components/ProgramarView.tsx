@@ -190,28 +190,13 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
               </select>
               <input
                 type="text"
+                autoComplete="off"
                 placeholder="Nombre Completo..."
                 value={currentNombre}
                 onChange={handleNombreInputChange}
                 className="flex-1 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
               />
             </div>
-
-            {/* Quick list */}
-            {savedDocentes.length > 0 && (
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {savedDocentes.slice(0, 4).map((doc, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onChangeFacilitador(doc)}
-                    className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-[#38393e] transition-colors cursor-pointer truncate max-w-[140px]"
-                  >
-                    {doc}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Cédula de Identidad (CI) */}
@@ -223,6 +208,7 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
               <CreditCard className="w-4 h-4 absolute left-3 text-zinc-400 pointer-events-none" />
               <input
                 type="text"
+                autoComplete="off"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 required
