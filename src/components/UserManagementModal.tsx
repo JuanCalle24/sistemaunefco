@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { UserProfile, UserRole, UserStatus } from '../types';
-import { OFFICIAL_TEAM_PRESETS, saveCustomUserLocal } from '../utils/authService';
-import { 
-  X, 
-  UserPlus, 
-  Users, 
-  ShieldCheck, 
-  UserX, 
-  UserCheck, 
-  Search, 
-  CheckCircle2, 
+import {
+  X,
+  UserPlus,
+  Users,
+  ShieldCheck,
+  UserX,
+  UserCheck,
+  Search,
+  CheckCircle2,
   AlertCircle,
   Briefcase,
-  Key
+  Info
 } from 'lucide-react';
 
 interface UserManagementModalProps {
@@ -31,53 +29,56 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // New user form state
+
   const [showAddForm, setShowAddForm] = useState(false);
+  const [newUid, setNewUid] = useState('');
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('Unefco2026');
   const [newCargo, setNewCargo] = useState('Técnico de Seguimiento Pedagógico');
   const [newRole, setNewRole] = useState<UserRole>('tecnico');
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
-  // Subscribe to users collection in Firestore
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('display_name', { ascending: true });
+
+    if (error) {
+      console.warn('Error cargando usuarios:', error);
+      setUsers([]);
+      setLoadingUsers(false);
+      return;
+    }
+
+    const mapped: UserProfile[] = (data || []).map((d: any) => ({
+      uid: d.uid,
+      email: d.email,
+      displayName: d.display_name,
+      role: d.role,
+      status: d.status,
+      cargo: d.cargo,
+      departamento: d.departamento,
+      createdAt: d.created_at,
+      lastLogin: d.last_login,
+    }));
+
+    mapped.sort((a, b) => {
+      if (a.role === 'admin' && b.role !== 'admin') return -1;
+      if (a.role !== 'admin' && b.role === 'admin') return 1;
+      return a.displayName.localeCompare(b.displayName);
+    });
+
+    setUsers(mapped);
+    setLoadingUsers(false);
+  };
+
   useEffect(() => {
     if (!isOpen) return;
-
-    setLoadingUsers(true);
-    const unsubscribe = onSnapshot(
-      collection(db, 'users'),
-      (snapshot) => {
-        const map = new Map<string, UserProfile>();
-
-        // Always seed initial team members in list
-        OFFICIAL_TEAM_PRESETS.forEach(item => map.set(item.uid, item));
-
-        snapshot.forEach((docSnap) => {
-          map.set(docSnap.id, { uid: docSnap.id, ...docSnap.data() } as UserProfile);
-        });
-
-        const list = Array.from(map.values());
-        list.sort((a, b) => {
-          if (a.role === 'admin' && b.role !== 'admin') return -1;
-          if (a.role !== 'admin' && b.role === 'admin') return 1;
-          return a.displayName.localeCompare(b.displayName);
-        });
-
-        setUsers(list);
-        setLoadingUsers(false);
-      },
-      (err) => {
-        console.warn('Cargando lista base de usuarios:', err);
-        setUsers(OFFICIAL_TEAM_PRESETS);
-        setLoadingUsers(false);
-      }
-    );
-
-    return () => unsubscribe();
+    loadUsers();
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -87,13 +88,13 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       alert('No puedes desactivar tu propia cuenta de Administrador.');
       return;
     }
-
     const newStatus: UserStatus = targetUser.status === 'active' ? 'inactive' : 'active';
-    try {
-      const userRef = doc(db, 'users', targetUser.uid);
-      await updateDoc(userRef, { status: newStatus });
-    } catch (err: any) {
-      // Local state fallback
+    const { error } = await supabase
+      .from('users')
+      .update({ status: newStatus })
+      .eq('uid', targetUser.uid);
+
+    if (!error) {
       setUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, status: newStatus } : u));
     }
   };
@@ -103,68 +104,54 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       alert('No puedes cambiar tu propio rol de Administrador.');
       return;
     }
-
     const newRoleVal: UserRole = targetUser.role === 'admin' ? 'tecnico' : 'admin';
-    try {
-      const userRef = doc(db, 'users', targetUser.uid);
-      await updateDoc(userRef, { role: newRoleVal });
-    } catch (err: any) {
+    const { error } = await supabase
+      .from('users')
+      .update({ role: newRoleVal })
+      .eq('uid', targetUser.uid);
+
+    if (!error) {
       setUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, role: newRoleVal } : u));
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleCreateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFormSuccess(null);
 
-    if (!newName.trim() || !newPassword.trim()) {
-      setFormError('Por favor complete el nombre y la contraseña.');
+    if (!newUid.trim() || !newName.trim() || !newEmail.trim()) {
+      setFormError('Por favor complete el UID, nombre y correo.');
       return;
     }
 
-    const formattedName = newName.trim().toUpperCase();
-    const formattedEmail = newEmail.trim() || `${formattedName.toLowerCase().replace(/\s+/g, '.')}@unefco.edu.bo`;
-    const newUid = `user_tec_${Date.now()}`;
-
     setFormLoading(true);
-
     try {
-      const newUserProfile: UserProfile = {
-        uid: newUid,
-        email: formattedEmail,
-        displayName: formattedName,
+      const { error } = await supabase.from('users').insert({
+        uid: newUid.trim(),
+        email: newEmail.trim(),
+        display_name: newName.trim().toUpperCase(),
         role: newRole,
         status: 'active',
         cargo: newCargo.trim() || 'Técnico de Seguimiento Pedagógico UNEFCO La Paz',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
-      };
+      });
 
-      // 1. Save in Firestore
-      try {
-        await setDoc(doc(db, 'users', newUid), newUserProfile);
-      } catch (e) {
-        console.warn('Firestore write warning:', e);
-      }
+      if (error) throw error;
 
-      // 2. Save in Local Auth Registry
-      saveCustomUserLocal(newUserProfile, newPassword.trim());
-
-      setFormSuccess(`¡Técnico "${formattedName}" registrado exitosamente con la contraseña "${newPassword.trim()}"!`);
+      setFormSuccess(`¡Perfil de "${newName.trim().toUpperCase()}" creado exitosamente!`);
+      setNewUid('');
       setNewName('');
       setNewEmail('');
-      setNewPassword('Unefco2026');
       setShowAddForm(false);
+      loadUsers();
     } catch (err: any) {
-      console.error('Error al registrar técnico:', err);
-      setFormError(`Error al registrar usuario: ${err.message}`);
+      setFormError(`Error al crear perfil: ${err.message}`);
     } finally {
       setFormLoading(false);
     }
   };
 
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = users.filter(u =>
     u.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (u.cargo && u.cargo.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -173,8 +160,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs animate-fade-in">
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
-        
-        {/* Modal Header */}
+
         <div className="p-4 bg-[#1e2330] text-white flex items-center justify-between border-b border-zinc-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-white/10 border border-white/20 rounded flex items-center justify-center">
@@ -197,7 +183,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           </button>
         </div>
 
-        {/* Action Toolbar */}
         <div className="p-3 border-b border-zinc-200 dark:border-[#333438] bg-zinc-50 dark:bg-[#1e1f21] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -219,20 +204,23 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
             className="w-full sm:w-auto bg-[#4573d2] hover:bg-[#3866c6] text-white px-3 py-1.5 rounded text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
             <UserPlus className="w-4 h-4" />
-            <span>{showAddForm ? 'Ocultar Formulario' : 'Registrar Nuevo Técnico'}</span>
+            <span>{showAddForm ? 'Ocultar Formulario' : 'Registrar Perfil de Técnico'}</span>
           </button>
         </div>
 
-        {/* Modal Body */}
         <div className="p-5 overflow-y-auto flex-1 space-y-5">
 
-          {/* Form to add new technician */}
           {showAddForm && (
             <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 animate-fade-in shadow-xs">
               <h3 className="text-sm font-bold text-emerald-950 dark:text-emerald-200 mb-3 flex items-center gap-2 font-display">
                 <UserPlus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Registrar Nuevo Técnico de Seguimiento UNEFCO</span>
+                <span>Registrar Perfil de Técnico</span>
               </h3>
+
+              <div className="mb-3 p-2.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 rounded-xl text-xs flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                <span>Primero cree la cuenta en Supabase (Authentication → Add user), copie su UID, y péguelo aquí junto al resto de los datos.</span>
+              </div>
 
               {formError && (
                 <div className="mb-3 p-2.5 bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 rounded-xl text-xs flex items-center gap-2">
@@ -241,7 +229,21 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                 </div>
               )}
 
-              <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <form onSubmit={handleCreateProfile} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
+                    UID (copiado de Supabase Authentication)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. a1b2c3d4-e5f6-..."
+                    value={newUid}
+                    onChange={(e) => setNewUid(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs font-mono"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
                     Nombre Completo del Técnico
@@ -258,10 +260,11 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
-                    Correo Electrónico (Opcional)
+                    Correo Electrónico
                   </label>
                   <input
                     type="email"
+                    required
                     placeholder="mario.mamani@unefco.edu.bo"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
@@ -269,23 +272,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
-                    Contraseña de Acceso
-                  </label>
-                  <div className="relative">
-                    <Key className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <input
-                      type="text"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs font-mono font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
                     Cargo / Función
                   </label>
@@ -330,7 +317,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     disabled={formLoading}
                     className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-xl transition-colors cursor-pointer shadow-xs disabled:opacity-50 font-display"
                   >
-                    {formLoading ? 'Guardando...' : 'Guardar y Habilitar Técnico'}
+                    {formLoading ? 'Guardando...' : 'Guardar Perfil'}
                   </button>
                 </div>
               </form>
@@ -344,7 +331,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
             </div>
           )}
 
-          {/* User List Table */}
           <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -388,7 +374,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-zinc-400 block font-mono">ID: {u.uid}</span>
+                            <span className="text-[10px] text-zinc-400 block font-mono">ID: {u.uid.slice(0, 8)}...</span>
                           </td>
 
                           <td className="py-3 px-4 font-mono text-zinc-600 dark:text-zinc-300 text-[11px]">
@@ -404,8 +390,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                               onClick={() => !isSelf && handleToggleRole(u)}
                               disabled={isSelf}
                               className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider cursor-pointer font-display ${
-                                isAdminRole 
-                                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300' 
+                                isAdminRole
+                                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300'
                                   : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300'
                               } ${isSelf ? 'opacity-80 cursor-default' : 'hover:opacity-80'}`}
                               title={isSelf ? 'Es tu propia cuenta' : 'Hacer clic para cambiar rol'}
@@ -417,8 +403,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
                           <td className="py-3 px-4 text-center">
                             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-display ${
-                              isActive 
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
+                              isActive
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                                 : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
                             }`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
@@ -431,8 +417,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                               <button
                                 onClick={() => handleToggleStatus(u)}
                                 className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1 font-display ${
-                                  isActive 
-                                    ? 'bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 border border-red-200' 
+                                  isActive
+                                    ? 'bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 border border-red-200'
                                     : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-200'
                                 }`}
                               >
@@ -463,7 +449,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
         </div>
 
-        {/* Modal Footer */}
         <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between text-xs text-zinc-500">
           <span>Personal Registrado: <strong>{users.length} técnicos</strong></span>
           <button
