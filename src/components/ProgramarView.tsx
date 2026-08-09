@@ -79,6 +79,7 @@ interface ProgramarViewProps {
   errorMessage?: string | null;
   warnings?: string[];
   currentUser?: UserProfile | null;
+  isViewer?: boolean;
 }
 
 export const ProgramarView: React.FC<ProgramarViewProps> = ({
@@ -113,7 +114,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
   onClearAll,
   errorMessage,
   warnings = [],
-  currentUser
+  currentUser,
+  isViewer = false
 }) => {
   const { grado: currentGrado, nombre: currentNombre } = parseDegreeAndName(facilitador);
 
