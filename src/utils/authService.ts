@@ -98,7 +98,14 @@ export const authenticateWithGoogle = async (): Promise<void> => {
 export const checkGoogleSession = async (): Promise<UserProfile | null> => {
   const { data } = await supabase.auth.getSession();
   const user = data.session?.user;
+
+  // Limpia el fragmento #access_token=... de la URL para que no se reprocese
+  if (window.location.hash.includes('access_token')) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
   if (!user) return null;
+  // ... resto del código igual
 
   const profile = await fetchProfileByUid(user.id);
 
