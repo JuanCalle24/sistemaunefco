@@ -29,7 +29,7 @@ import { calculateSchedulerAuto, calculateSchedulerManual } from './utils/schedu
 import { generatePDFDocument } from './utils/pdfGenerator';
 import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
 
-import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser, checkGoogleSession, logoutUser } from './services/authService';
+import { getLoggedInUser, clearLoggedInUser, logoutUser } from './utils/authService';
 import { saveScheduleToFirestore, subscribeToSchedules, deleteScheduleFromFirestore, clearAllSchedulesFromFirestore } from './services/scheduleService';
 import { CorrelativoRecord, subscribeToCorrelativos } from './services/correlativoService';
 import { CorrelativosModule } from './components/CorrelativosModule';
@@ -117,42 +117,19 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
-  // User Session Listener
- // User Session Listener (Supabase)
+  // User Session Listener (correo/contraseña con Supabase)
   useEffect(() => {
-    const initAuth = async () => {
-      // 1. Revisa si ya hay un usuario guardado localmente
-      const savedUser = getLoggedInUser();
-      if (savedUser && savedUser.status === 'active') {
-        setCurrentUser(savedUser);
-        if (savedUser.displayName) {
-          setTecnico(savedUser.displayName);
-        }
+    const savedUser = getLoggedInUser();
+    if (savedUser && savedUser.status === 'active') {
+      setCurrentUser(savedUser);
+      if (savedUser.displayName) {
+        setTecnico(savedUser.displayName);
       }
-
-      // 2. Verifica/sincroniza con la sesión real de Supabase
-      try {
-        const profile = await checkGoogleSession();
-        if (profile) {
-          setCurrentUser(profile);
-          if (profile.displayName) {
-            setTecnico(profile.displayName);
-          }
-        } else if (!savedUser) {
-          // No hay sesión de Supabase ni usuario local guardado
-          clearLoggedInUser();
-          setCurrentUser(null);
-        }
-      } catch (err: any) {
-        console.warn('Error verificando sesión:', err?.message);
-        clearLoggedInUser();
-        setCurrentUser(null);
-      }
-
-      setAuthLoading(false);
-    };
-
-    initAuth();
+    } else {
+      clearLoggedInUser();
+      setCurrentUser(null);
+    }
+    setAuthLoading(false);
   }, []);
 
   // Ensure tecnico state stays synced with logged in currentUser
@@ -175,7 +152,7 @@ export default function App() {
       localStorage.setItem('unefco_form_draft', JSON.stringify(draftState));
     }
 
-    await logoutUser(); // cierra sesión de Supabase Y limpia localStorage
+    await logoutUser();
     setCurrentUser(null);
   };
 
@@ -1042,6 +1019,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
