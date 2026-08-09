@@ -183,7 +183,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
               <select
                 value={currentGrado}
                 onChange={handleGradoSelectChange}
-                className="w-24 shrink-0 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded px-2.5 py-2 text-xs font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                disabled={isViewer}
+                className="w-24 shrink-0 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded px-2.5 py-2 text-xs font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {GRADOS_ACADEMICOS.map(g => (
                   <option key={g} value={g}>{g}</option>
@@ -196,7 +197,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 placeholder="Nombre Completo..."
                 value={currentNombre}
                 onChange={handleNombreInputChange}
-                className="flex-1 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
+                readOnly={isViewer}
+                className="flex-1 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none disabled:opacity-60 read-only:opacity-60 read-only:cursor-not-allowed"
               />
             </div>
           </div>
@@ -217,7 +219,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 placeholder="Ingrese C.I. numérico..."
                 value={ci}
                 onChange={(e) => onChangeCi(e.target.value.replace(/[^0-9]/g, ''))}
-                className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-xs font-mono font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                readOnly={isViewer}
+                className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-xs font-mono font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none read-only:opacity-60 read-only:cursor-not-allowed"
               />
             </div>
             <p className="text-[10px] text-zinc-400 mt-1">
@@ -272,7 +275,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
               <button
                 type="button"
                 onClick={() => onToggleModo('automatico')}
-                className={`flex-1 py-2 px-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                disabled={isViewer}
+                className={`flex-1 py-2 px-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                   modo === 'automatico'
                     ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white shadow-2xs border border-zinc-200 dark:border-[#38393e]'
                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
@@ -284,7 +288,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
               <button
                 type="button"
                 onClick={() => onToggleModo('manual')}
-                className={`flex-1 py-2 px-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                disabled={isViewer}
+                className={`flex-1 py-2 px-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                   modo === 'manual'
                     ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white shadow-2xs border border-zinc-200 dark:border-[#38393e]'
                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
@@ -358,7 +363,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 step={1}
                 value={holguraDias}
                 onChange={(e) => onChangeHolguraDias && onChangeHolguraDias(Number(e.target.value))}
-                className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                disabled={isViewer}
+                className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-600 disabled:opacity-60 disabled:cursor-not-allowed"
               />
 
               {/* Stagger Presets Buttons */}
@@ -366,7 +372,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onChangeHolguraDias && onChangeHolguraDias(0)}
-                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  disabled={isViewer}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                     holguraDias === 0
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
@@ -378,7 +385,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onChangeHolguraDias && onChangeHolguraDias(3)}
-                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  disabled={isViewer}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                     holguraDias === 3
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
@@ -390,7 +398,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onChangeHolguraDias && onChangeHolguraDias(7)}
-                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  disabled={isViewer}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                     holguraDias === 7
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
@@ -429,6 +438,7 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                   <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase">
                     Asignación #{rowIdx + 1}
                   </span>
+                  {!isViewer && (
                   <button
                     type="button"
                     onClick={() => onRemoveMatrixRow(row.id)}
@@ -437,6 +447,7 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -453,7 +464,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                           selectedCursoIndex: row.isExceptional ? 0 : null
                         });
                       }}
-                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer"
+                      disabled={isViewer}
+                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {OFERTA_FORMATIVA_UNEFCO_2026.map((c, idx) => (
                         <option key={c.id} value={idx}>
@@ -471,7 +483,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                       type="text"
                       value={row.lugar}
                       onChange={e => onUpdateMatrixRow(row.id, 'lugar', e.target.value.toUpperCase())}
-                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-mono font-medium text-zinc-900 dark:text-zinc-100 uppercase focus:outline-none"
+                      readOnly={isViewer}
+                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-mono font-medium text-zinc-900 dark:text-zinc-100 uppercase focus:outline-none read-only:opacity-60 read-only:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -489,7 +502,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                           selectedCursoIndex: checked ? 0 : null
                         });
                       }}
-                      className="rounded text-zinc-700 focus:ring-zinc-600 h-3.5 w-3.5 cursor-pointer"
+                      disabled={isViewer}
+                      className="rounded text-zinc-700 focus:ring-zinc-600 h-3.5 w-3.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <span>Asignar solo 1 curso individual (Caso Excepcional)</span>
                   </label>
@@ -499,7 +513,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                       <select
                         value={row.selectedCursoIndex ?? 0}
                         onChange={e => onUpdateMatrixRow(row.id, 'selectedCursoIndex', parseInt(e.target.value, 10))}
-                        className="bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-2.5 py-1 text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                        disabled={isViewer}
+                        className="bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-2.5 py-1 text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {selectedCicloObj.cursos.map((cName, cIdx) => (
                           <option key={cIdx} value={cIdx}>
@@ -514,7 +529,7 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
             );
           })}
 
-          {totalCiclosCount < 5 && (
+          {totalCiclosCount < 5 && !isViewer && (
             <button
               type="button"
               onClick={onAddMatrixRow}
@@ -554,11 +569,16 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
         <button
           type="button"
           onClick={onGenerar}
-          disabled={!isValid || isGenerating}
+          disabled={!isValid || isGenerating || isViewer}
           className="flex-1 bg-[#4573d2] hover:bg-[#3866c6] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider py-3 px-5 rounded-md shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           {isGenerating ? (
             <span>Procesando Guardado...</span>
+          ) : isViewer ? (
+            <>
+              <Lock className="w-4 h-4 text-white" />
+              <span>Solo Lectura (Sin Permiso de Edición)</span>
+            </>
           ) : modo === 'manual' ? (
             <>
               <CheckCircle2 className="w-4 h-4 text-white" />
