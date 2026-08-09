@@ -50,6 +50,7 @@ export default function App() {
     }
   }, [currentUser]);
 
+  const isViewer = activeRole === 'viewer';
   const handleToggleActiveRole = () => {
     if (currentUser?.role !== 'admin') return;
     setActiveRole(prev => (prev === 'admin' ? 'tecnico' : 'admin'));
@@ -519,6 +520,7 @@ export default function App() {
   };
 
   const handleGenerar = () => {
+    if (isViewer) return;
     if (modo === 'automatico') {
       triggerCalculationAuto();
     } else {
@@ -889,6 +891,7 @@ export default function App() {
               errorMessage={errorMessage}
               warnings={warnings}
               currentUser={currentUser}
+              isViewer={isViewer}
             />
           )}
 
@@ -910,6 +913,8 @@ export default function App() {
               onTecnicoChange={setSelectedTecnico}
               availableTecnicos={availableTecnicos}
               onResetFilters={handleResetFilters}
+              onResetFilters={handleResetFilters}
+              isViewer={isViewer}
             />
           )}
 
