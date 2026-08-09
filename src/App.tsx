@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from './lib/firebase';
 import { Header } from './components/Header';
 import { Sidebar, MainViewOption } from './components/Sidebar';
 import { Timeline } from './components/Timeline';
@@ -32,7 +29,7 @@ import { calculateSchedulerAuto, calculateSchedulerManual } from './utils/schedu
 import { generatePDFDocument } from './utils/pdfGenerator';
 import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
 
-import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser } from './utils/authService';
+import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser, checkGoogleSession, logoutUser } from './services/authService';
 import { saveScheduleToFirestore, subscribeToSchedules, deleteScheduleFromFirestore, clearAllSchedulesFromFirestore } from './services/scheduleService';
 import { CorrelativoRecord, subscribeToCorrelativos } from './services/correlativoService';
 import { CorrelativosModule } from './components/CorrelativosModule';
@@ -121,47 +118,41 @@ export default function App() {
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
   // User Session Listener
+ // User Session Listener (Supabase)
   useEffect(() => {
-    // Check saved local user session first
-    const savedUser = getLoggedInUser();
-    if (savedUser && savedUser.status === 'active') {
-      setCurrentUser(savedUser);
-      if (savedUser.displayName) {
-        setTecnico(savedUser.displayName);
-      }
-      setAuthLoading(false);
-    } else {
-      clearLoggedInUser();
-      setAuthLoading(false);
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const userRef = doc(db, 'users', firebaseUser.uid);
-          const snap = await getDoc(userRef);
-          if (snap.exists()) {
-            const profile = { uid: firebaseUser.uid, ...snap.data() } as UserProfile;
-            if (profile.status === 'inactive') {
-              alert('Su cuenta ha sido desactivada por el Administrador Juan Carlos Calle Chávez.');
-              await signOut(auth);
-              clearLoggedInUser();
-              setCurrentUser(null);
-            } else {
-              setCurrentUser(profile);
-              saveLoggedInUser(profile);
-              if (profile.displayName) {
-                setTecnico(profile.displayName);
-              }
-            }
-          }
-        } catch (err) {
-          console.warn('Syncing auth state warning:', err);
+    const initAuth = async () => {
+      // 1. Revisa si ya hay un usuario guardado localmente
+      const savedUser = getLoggedInUser();
+      if (savedUser && savedUser.status === 'active') {
+        setCurrentUser(savedUser);
+        if (savedUser.displayName) {
+          setTecnico(savedUser.displayName);
         }
       }
-    });
 
-    return () => unsubscribe();
+      // 2. Verifica/sincroniza con la sesión real de Supabase
+      try {
+        const profile = await checkGoogleSession();
+        if (profile) {
+          setCurrentUser(profile);
+          if (profile.displayName) {
+            setTecnico(profile.displayName);
+          }
+        } else if (!savedUser) {
+          // No hay sesión de Supabase ni usuario local guardado
+          clearLoggedInUser();
+          setCurrentUser(null);
+        }
+      } catch (err: any) {
+        console.warn('Error verificando sesión:', err?.message);
+        clearLoggedInUser();
+        setCurrentUser(null);
+      }
+
+      setAuthLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   // Ensure tecnico state stays synced with logged in currentUser
@@ -184,12 +175,7 @@ export default function App() {
       localStorage.setItem('unefco_form_draft', JSON.stringify(draftState));
     }
 
-    try {
-      await signOut(auth);
-    } catch (err) {
-      // Ignore
-    }
-    clearLoggedInUser();
+    await logoutUser(); // cierra sesión de Supabase Y limpia localStorage
     setCurrentUser(null);
   };
 
