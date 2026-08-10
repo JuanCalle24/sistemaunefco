@@ -99,6 +99,11 @@ function rowToRecord(row: any): CorrelativoRecord {
   };
 }
 
+// Genera un nombre de canal único para evitar colisiones de resuscripción en Supabase Realtime
+function uniqueChannelName(base: string): string {
+  return `${base}-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+}
+
 // ---------------------------------------------------------------------------
 // API pública (mismos nombres que la versión Firestore)
 // ---------------------------------------------------------------------------
@@ -179,6 +184,7 @@ export function subscribeToCorrelativos(
   onUpdate: (records: CorrelativoRecord[]) => void
 ): () => void {
   let active = true;
+  let channel: ReturnType<typeof supabase.channel> | null = null;
 
   const fetchAndEmit = async () => {
     const { data, error } = await supabase
@@ -199,8 +205,8 @@ export function subscribeToCorrelativos(
 
   fetchAndEmit();
 
-  const channel = supabase
-    .channel('correlativos-changes')
+  channel = supabase
+    .channel(uniqueChannelName('correlativos-changes'))
     .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
       fetchAndEmit();
     })
@@ -208,7 +214,7 @@ export function subscribeToCorrelativos(
 
   return () => {
     active = false;
-    supabase.removeChannel(channel);
+    if (channel) supabase.removeChannel(channel);
   };
 }
 
@@ -217,6 +223,7 @@ export function subscribeToCounters(
   onUpdate: (counters: CorrelativoCounters) => void
 ): () => void {
   let active = true;
+  let channel: ReturnType<typeof supabase.channel> | null = null;
 
   const fetchAndEmit = async () => {
     const { data, error } = await supabase
@@ -240,8 +247,8 @@ export function subscribeToCounters(
 
   fetchAndEmit();
 
-  const channel = supabase
-    .channel('correlativo-counters-changes')
+  channel = supabase
+    .channel(uniqueChannelName('correlativo-counters-changes'))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: TABLE, filter: `id=eq.${COUNTERS_ID}` },
@@ -253,6 +260,6 @@ export function subscribeToCounters(
 
   return () => {
     active = false;
-    supabase.removeChannel(channel);
+    if (channel) supabase.removeChannel(channel);
   };
 }
