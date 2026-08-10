@@ -19,6 +19,11 @@ function parseDate(val: any): Date {
   return val instanceof Date ? val : new Date(val);
 }
 
+// Genera un nombre de canal único para evitar colisiones de resuscripción en Supabase Realtime
+function uniqueChannelName(base: string): string {
+  return `${base}-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+}
+
 // Convierte un ProgramacionResultado completo en N filas (una por curso) listas para Supabase
 function serializeScheduleToRows(schedule: ProgramacionResultado): Record<string, any>[] {
   const idTransaccion = schedule.idTransaccion || `TRANS-${Date.now()}`;
@@ -240,6 +245,7 @@ export async function clearAllSchedulesFromFirestore(): Promise<void> {
 // Suscripción en tiempo real (Supabase Realtime) + carga inicial
 export function subscribeToSchedules(onUpdate: (schedules: ProgramacionResultado[]) => void): () => void {
   let active = true;
+  let channel: ReturnType<typeof supabase.channel> | null = null;
 
   const fetchAndEmit = async () => {
     const { data, error } = await supabase
@@ -261,8 +267,8 @@ export function subscribeToSchedules(onUpdate: (schedules: ProgramacionResultado
   fetchAndEmit();
 
   // Suscripción a cambios en tiempo real
-  const channel = supabase
-    .channel('schedules-changes')
+  channel = supabase
+    .channel(uniqueChannelName('schedules-changes'))
     .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
       fetchAndEmit();
     })
@@ -270,6 +276,6 @@ export function subscribeToSchedules(onUpdate: (schedules: ProgramacionResultado
 
   return () => {
     active = false;
-    supabase.removeChannel(channel);
+    if (channel) supabase.removeChannel(channel);
   };
 }
