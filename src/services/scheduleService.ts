@@ -1,150 +1,275 @@
-import { db } from '../lib/firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
-import { ProgramacionResultado, CursoProgramado } from '../types';
+import { supabase } from '../lib/supabase';
+import { ProgramacionResultado, CursoProgramado, SlotAsignacion } from '../types';
 
-const SCHEDULES_COLLECTION = 'schedules';
+const TABLE = 'schedules';
 
-// Helper to strip undefined values so Firestore setDoc does not throw unsupported field errors
-function cleanUndefined(obj: any): any {
-  if (obj === undefined) return null;
-  if (obj === null) return null;
-  if (Array.isArray(obj)) return obj.map(cleanUndefined);
-  if (typeof obj === 'object' && !(obj instanceof Date)) {
-    const cleaned: Record<string, any> = {};
-    for (const key of Object.keys(obj)) {
-      if (obj[key] !== undefined) {
-        cleaned[key] = cleanUndefined(obj[key]);
-      }
-    }
-    return cleaned;
+// ---------------------------------------------------------------------------
+// Helpers de conversión
+// ---------------------------------------------------------------------------
+
+function toISO(val: any): string | null {
+  if (!val) return null;
+  if (val instanceof Date) return val.toISOString();
+  if (typeof val === 'string') return val;
+  return new Date(val).toISOString();
+}
+
+function parseDate(val: any): Date {
+  if (!val) return new Date();
+  return val instanceof Date ? val : new Date(val);
+}
+
+// Convierte un ProgramacionResultado completo en N filas (una por curso) listas para Supabase
+function serializeScheduleToRows(schedule: ProgramacionResultado): Record<string, any>[] {
+  const idTransaccion = schedule.idTransaccion || `TRANS-${Date.now()}`;
+
+  const rows = (schedule.asignaciones || []).map((asig: CursoProgramado) => {
+    const slot = (schedule.slots || []).find(s => s.id === asig.slotId);
+
+    return {
+      id_transaccion: idTransaccion,
+      slot_id: asig.slotId,
+      cat: asig.cat ?? slot?.cat ?? null,
+      ciclo_id: asig.cicloId ?? slot?.cicloId ?? null,
+      ciclo_nombre: asig.cicloNombre ?? slot?.cicloNombre ?? null,
+      lugar: asig.lugar ?? slot?.lugar ?? null,
+      modalidad: asig.modalidad ?? slot?.modalidad ?? null,
+      ciclo_numero: asig.cicloNumero ?? null,
+      curso_index: asig.cursoIndex ?? null,
+      curso_nombre: asig.cursoNombre ?? null,
+      inicio: toISO(asig.inicio),
+      fin: toISO(asig.fin),
+      planificacion: toISO(asig.planificacion),
+      informe_final: toISO(asig.informeFinal),
+      sesion2: toISO(asig.sesion2),
+      sesion3: toISO(asig.sesion3),
+      es_manual: schedule.modo === 'manual',
+      facilitador: schedule.facilitador ?? null,
+      ci: schedule.ci ?? null,
+      tecnico: schedule.tecnico ?? null,
+      usuario_registro: schedule.usuarioRegistro ?? null,
+      estado: schedule.estado ?? 'ACTIVO',
+      motivo_anulacion: schedule.motivoAnulacion ?? null,
+      fecha_inicio_contrato: toISO(schedule.fechaInicioContrato),
+      limite_contrato: toISO(schedule.limiteContrato),
+      rol_operador: schedule.rolOperador ?? null,
+      fecha_anulacion: toISO(schedule.fechaAnulacion),
+      usuario_anulador: schedule.usuarioAnulador ?? null,
+      slot_lugar: slot?.lugar ?? null,
+      slot_modalidad: slot?.modalidad ?? null,
+      days_used: schedule.daysUsed ?? null
+    };
+  });
+
+  // Si no hay asignaciones (caso raro), igual guardamos una fila "cabecera" para no perder el registro
+  if (rows.length === 0) {
+    rows.push({
+      id_transaccion: idTransaccion,
+      slot_id: null,
+      facilitador: schedule.facilitador ?? null,
+      ci: schedule.ci ?? null,
+      tecnico: schedule.tecnico ?? null,
+      usuario_registro: schedule.usuarioRegistro ?? null,
+      estado: schedule.estado ?? 'ACTIVO',
+      motivo_anulacion: schedule.motivoAnulacion ?? null,
+      fecha_inicio_contrato: toISO(schedule.fechaInicioContrato),
+      limite_contrato: toISO(schedule.limiteContrato),
+      rol_operador: schedule.rolOperador ?? null,
+      fecha_anulacion: toISO(schedule.fechaAnulacion),
+      usuario_anulador: schedule.usuarioAnulador ?? null,
+      days_used: schedule.daysUsed ?? null
+    });
   }
-  return obj;
+
+  return rows;
 }
 
-// Helper to safely convert Date objects to ISO strings for Firestore storage
-function serializeSchedule(schedule: ProgramacionResultado): Record<string, any> {
-  const docId = schedule.idTransaccion || `TRANS-${Date.now()}`;
-  
-  const serializedAsignaciones = (schedule.asignaciones || []).map((asig: CursoProgramado) => ({
-    ...asig,
-    inicio: asig.inicio instanceof Date ? asig.inicio.toISOString() : asig.inicio,
-    fin: asig.fin instanceof Date ? asig.fin.toISOString() : asig.fin,
-    planificacion: asig.planificacion instanceof Date ? asig.planificacion.toISOString() : asig.planificacion,
-    informeFinal: asig.informeFinal instanceof Date ? asig.informeFinal.toISOString() : asig.informeFinal,
-    sesion2: asig.sesion2 instanceof Date ? asig.sesion2.toISOString() : asig.sesion2,
-    sesion3: asig.sesion3 instanceof Date ? asig.sesion3.toISOString() : asig.sesion3,
-  }));
+// Reagrupa filas de Supabase (por id_transaccion) en objetos ProgramacionResultado
+function deserializeRowsToSchedules(rows: any[]): ProgramacionResultado[] {
+  const grouped = new Map<string, any[]>();
 
-  const payload = {
-    ...schedule,
-    idTransaccion: docId,
-    fechaInicioContrato: schedule.fechaInicioContrato instanceof Date 
-      ? schedule.fechaInicioContrato.toISOString() 
-      : schedule.fechaInicioContrato,
-    limiteContrato: schedule.limiteContrato instanceof Date 
-      ? schedule.limiteContrato.toISOString() 
-      : schedule.limiteContrato,
-    fechaAnulacion: schedule.fechaAnulacion,
-    asignaciones: serializedAsignaciones,
-    updatedAt: new Date().toISOString()
-  };
+  rows.forEach(row => {
+    const key = row.id_transaccion;
+    if (!key) return;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(row);
+  });
 
-  return cleanUndefined(payload);
+  const results: ProgramacionResultado[] = [];
+
+  grouped.forEach((groupRows, idTransaccion) => {
+    const first = groupRows[0];
+
+    // Reconstruir asignaciones (cursos)
+    const asignaciones: CursoProgramado[] = groupRows
+      .filter(r => r.slot_id)
+      .map(r => ({
+        slotId: r.slot_id,
+        cat: r.cat,
+        cicloId: r.ciclo_id,
+        cicloNombre: r.ciclo_nombre,
+        lugar: r.lugar,
+        modalidad: r.modalidad,
+        cicloNumero: r.ciclo_numero,
+        cursoIndex: r.curso_index,
+        cursoNombre: r.curso_nombre,
+        inicio: parseDate(r.inicio),
+        fin: parseDate(r.fin),
+        planificacion: parseDate(r.planificacion),
+        informeFinal: parseDate(r.informe_final),
+        sesion2: parseDate(r.sesion2),
+        sesion3: parseDate(r.sesion3)
+      } as CursoProgramado));
+
+    // Reconstruir slots únicos (agrupando por slot_id)
+    const slotsMap = new Map<string, SlotAsignacion>();
+    groupRows.forEach(r => {
+      if (!r.slot_id) return;
+      if (!slotsMap.has(r.slot_id)) {
+        slotsMap.set(r.slot_id, {
+          id: r.slot_id,
+          cicloId: r.ciclo_id,
+          cicloNombre: r.ciclo_nombre,
+          cat: r.cat,
+          lugar: r.slot_lugar || r.lugar,
+          modalidad: r.slot_modalidad || r.modalidad,
+          cursos: []
+        } as unknown as SlotAsignacion);
+      }
+      const slot = slotsMap.get(r.slot_id)!;
+      if (r.curso_nombre && !(slot as any).cursos.includes(r.curso_nombre)) {
+        (slot as any).cursos.push(r.curso_nombre);
+      }
+    });
+
+    results.push({
+      idTransaccion,
+      facilitador: first.facilitador,
+      ci: first.ci,
+      tecnico: first.tecnico,
+      usuarioRegistro: first.usuario_registro,
+      estado: first.estado,
+      motivoAnulacion: first.motivo_anulacion,
+      fechaInicioContrato: parseDate(first.fecha_inicio_contrato),
+      limiteContrato: parseDate(first.limite_contrato),
+      rolOperador: first.rol_operador,
+      fechaAnulacion: first.fecha_anulacion ? parseDate(first.fecha_anulacion) : undefined,
+      usuarioAnulador: first.usuario_anulador,
+      daysUsed: first.days_used,
+      modo: first.es_manual ? 'manual' : 'automatico',
+      asignaciones,
+      slots: Array.from(slotsMap.values())
+    } as unknown as ProgramacionResultado);
+  });
+
+  return results.sort((a, b) => {
+    const da = a.fechaInicioContrato ? new Date(a.fechaInicioContrato).getTime() : 0;
+    const db = b.fechaInicioContrato ? new Date(b.fechaInicioContrato).getTime() : 0;
+    return db - da;
+  });
 }
 
-// Helper to convert Firestore JSON back to ProgramacionResultado with JS Date objects
-export function deserializeSchedule(data: any): ProgramacionResultado {
-  const parseDate = (val: any): Date => {
-    if (!val) return new Date();
-    if (val.toDate && typeof val.toDate === 'function') return val.toDate();
-    if (val instanceof Date) return val;
-    return new Date(val);
-  };
+// ---------------------------------------------------------------------------
+// API pública (mismos nombres que la versión Firestore, para no tocar App.tsx)
+// ---------------------------------------------------------------------------
 
-  const asignaciones = (data.asignaciones || []).map((asig: any) => ({
-    ...asig,
-    inicio: parseDate(asig.inicio),
-    fin: parseDate(asig.fin),
-    planificacion: parseDate(asig.planificacion),
-    informeFinal: parseDate(asig.informeFinal),
-    sesion2: parseDate(asig.sesion2),
-    sesion3: parseDate(asig.sesion3),
-  }));
-
-  return {
-    ...data,
-    fechaInicioContrato: parseDate(data.fechaInicioContrato),
-    limiteContrato: parseDate(data.limiteContrato),
-    asignaciones
-  };
-}
-
-// Save or update a schedule in Firestore
+// Guarda o actualiza un cronograma completo: borra las filas previas de esa
+// transacción y vuelve a insertar el set actual (simple y evita filas huérfanas)
 export async function saveScheduleToFirestore(schedule: ProgramacionResultado): Promise<void> {
   try {
-    const docId = schedule.idTransaccion || `TRANS-${Date.now()}`;
-    const payload = serializeSchedule(schedule);
-    const docRef = doc(db, SCHEDULES_COLLECTION, docId);
-    await setDoc(docRef, payload, { merge: true });
-    console.log(`[Firestore] Cronograma ${docId} guardado exitosamente.`);
+    const idTransaccion = schedule.idTransaccion || `TRANS-${Date.now()}`;
+    const rows = serializeScheduleToRows({ ...schedule, idTransaccion });
+
+    const { error: delError } = await supabase
+      .from(TABLE)
+      .delete()
+      .eq('id_transaccion', idTransaccion);
+
+    if (delError) {
+      console.error('[Supabase] Error al limpiar filas previas del cronograma:', delError);
+    }
+
+    const { error: insError } = await supabase.from(TABLE).insert(rows);
+
+    if (insError) {
+      console.error('[Supabase] Error al guardar cronograma:', insError);
+    } else {
+      console.log(`[Supabase] Cronograma ${idTransaccion} guardado exitosamente.`);
+    }
   } catch (error) {
-    console.error('[Firestore] Error al guardar cronograma:', error);
-    // Keep working even if offline
+    console.error('[Supabase] Error inesperado al guardar cronograma:', error);
   }
 }
 
-// Delete a single schedule document from Firestore
-export async function deleteScheduleFromFirestore(docId: string): Promise<void> {
+// Elimina todas las filas de un cronograma (identificado por idTransaccion)
+export async function deleteScheduleFromFirestore(idTransaccion: string): Promise<void> {
   try {
-    const docRef = doc(db, SCHEDULES_COLLECTION, docId);
-    await deleteDoc(docRef);
-    console.log(`[Firestore] Cronograma ${docId} eliminado exitosamente.`);
+    const { error } = await supabase
+      .from(TABLE)
+      .delete()
+      .eq('id_transaccion', idTransaccion);
+
+    if (error) {
+      console.error('[Supabase] Error al eliminar cronograma:', error);
+    } else {
+      console.log(`[Supabase] Cronograma ${idTransaccion} eliminado exitosamente.`);
+    }
   } catch (error) {
-    console.error('[Firestore] Error al eliminar cronograma:', error);
+    console.error('[Supabase] Error inesperado al eliminar cronograma:', error);
   }
 }
 
-// Clear all schedule documents from Firestore
+// Elimina TODAS las filas de la tabla schedules
 export async function clearAllSchedulesFromFirestore(): Promise<void> {
   try {
-    const schedulesRef = collection(db, SCHEDULES_COLLECTION);
-    const snapshot = await getDocs(schedulesRef);
-    const deletePromises = snapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
-    await Promise.all(deletePromises);
-    console.log('[Firestore] Todo el historial de cronogramas ha sido eliminado.');
+    const { error } = await supabase
+      .from(TABLE)
+      .delete()
+      .not('id_transaccion', 'is', null);
+
+    if (error) {
+      console.error('[Supabase] Error al limpiar todo el historial:', error);
+    } else {
+      console.log('[Supabase] Todo el historial de cronogramas ha sido eliminado.');
+    }
   } catch (error) {
-    console.error('[Firestore] Error al limpiar todo el historial:', error);
+    console.error('[Supabase] Error inesperado al limpiar historial:', error);
   }
 }
 
-// Subscribe to real-time updates for all schedules (syncs across devices and sessions)
+// Suscripción en tiempo real (Supabase Realtime) + carga inicial
 export function subscribeToSchedules(onUpdate: (schedules: ProgramacionResultado[]) => void): () => void {
-  try {
-    const schedulesRef = collection(db, SCHEDULES_COLLECTION);
-    const q = query(schedulesRef, orderBy('updatedAt', 'desc'), limit(50));
+  let active = true;
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const items: ProgramacionResultado[] = [];
-        snapshot.forEach((docSnap) => {
-          try {
-            const data = docSnap.data();
-            items.push(deserializeSchedule(data));
-          } catch (err) {
-            console.error('[Firestore] Error deserializando documento:', err);
-          }
-        });
-        onUpdate(items);
-      },
-      (error) => {
-        console.error('[Firestore] Error en listener de cronogramas:', error);
-      }
-    );
+  const fetchAndEmit = async () => {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
 
-    return unsubscribe;
-  } catch (err) {
-    console.error('[Firestore] No se pudo iniciar suscripción:', err);
-    return () => {};
-  }
+    if (error) {
+      console.error('[Supabase] Error al cargar cronogramas:', error);
+      return;
+    }
+    if (active && data) {
+      onUpdate(deserializeRowsToSchedules(data));
+    }
+  };
+
+  // Carga inicial
+  fetchAndEmit();
+
+  // Suscripción a cambios en tiempo real
+  const channel = supabase
+    .channel('schedules-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
+      fetchAndEmit();
+    })
+    .subscribe();
+
+  return () => {
+    active = false;
+    supabase.removeChannel(channel);
+  };
 }
