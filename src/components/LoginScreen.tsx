@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { authenticateUser } from '../utils/authService';
-import {
-  Lock,
-  Mail,
-  Eye,
-  EyeOff,
-  AlertCircle,
+import { 
+  authenticateUser, 
+  seedDefaultTeamToFirestore 
+} from '../utils/authService';
+import { 
+  Lock, 
+  User, 
+  Eye, 
+  EyeOff, 
+  AlertCircle, 
   UserCheck
 } from 'lucide-react';
 
@@ -16,26 +19,30 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDarkMode }) => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    seedDefaultTeamToFirestore();
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setInfoMessage(null);
 
-    if (!email || !password) {
-      setError('Por favor ingrese su correo y contraseña.');
+    if (!identifier || !password) {
+      setError('Por favor ingrese su usuario y su contraseña asignada.');
       return;
     }
 
     setLoading(true);
     try {
-      const userProfile = await authenticateUser(email, password);
+      const userProfile = await authenticateUser(identifier, password);
       setInfoMessage(`¡Bienvenido/a, ${userProfile.displayName}!`);
       setTimeout(() => {
         onLoginSuccess(userProfile);
@@ -52,7 +59,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
       isDarkMode ? 'dark bg-[#1e1f21] text-zinc-100' : 'bg-[#f8f9fa] text-zinc-900'
     }`}>
       <div className="w-full max-w-md bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg shadow-xs overflow-hidden">
-
+        
+        {/* Header Title */}
         <div className="p-6 pb-2 text-left">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 tracking-wider uppercase">
@@ -83,21 +91,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
+            
+            {/* Minimalist Input Grid matching user reference image */}
             <div className="border border-zinc-300 dark:border-[#3e3f44] rounded overflow-hidden divide-y divide-zinc-300 dark:divide-[#3e3f44]">
+              {/* Username row */}
               <div className="flex items-center bg-white dark:bg-[#1e1f21]">
                 <div className="w-12 h-11 bg-zinc-100 dark:bg-[#2d2e32] border-r border-zinc-300 dark:border-[#3e3f44] flex items-center justify-center shrink-0">
-                  <Mail className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+                  <User className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Correo electrónico"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="Nombre de usuario"
                   className="w-full px-3 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
                 />
               </div>
 
+              {/* Password row */}
               <div className="flex items-center bg-white dark:bg-[#1e1f21] relative">
                 <div className="w-12 h-11 bg-zinc-100 dark:bg-[#2d2e32] border-r border-zinc-300 dark:border-[#3e3f44] flex items-center justify-center shrink-0">
                   <Lock className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
@@ -120,6 +132,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
               </div>
             </div>
 
+            {/* Asana Royal Blue Acceder Button */}
             <button
               type="submit"
               disabled={loading}
@@ -133,3 +146,5 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
     </div>
   );
 };
+
+

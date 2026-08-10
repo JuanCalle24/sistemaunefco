@@ -16,8 +16,7 @@ import {
   Info,
   CheckCircle2,
   Clock,
-  Laptop,
-  Lock
+  Laptop
 } from 'lucide-react';
 import { ProgramacionResultado, SlotAsignacion } from '../types';
 import { CicloCard } from './CicloCard';
@@ -42,7 +41,6 @@ interface EventoViewProps {
   onTecnicoChange: (v: string) => void;
   availableTecnicos: string[];
   onResetFilters: () => void;
-  isViewer?: boolean;
 }
 
 export const EventoView: React.FC<EventoViewProps> = ({
@@ -61,8 +59,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
   selectedTecnico,
   onTecnicoChange,
   availableTecnicos,
-  onResetFilters,
-  isViewer = false
+  onResetFilters
 }) => {
   if (!resultado) {
     return (
@@ -76,15 +73,13 @@ export const EventoView: React.FC<EventoViewProps> = ({
         <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md leading-relaxed mb-5">
           Seleccione la opción "Generar Cronograma" en el menú lateral de opciones para ingresar los parámetros del docente y calcular los itinerarios formativos.
         </p>
-        {!isViewer && (
-          <button
-            onClick={onGoToProgramar}
-            className="bg-[#4573d2] hover:bg-[#3866c6] text-white px-4 py-2 rounded text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
-          >
-            <Sliders className="w-4 h-4" />
-            <span>Configurar Parámetros</span>
-          </button>
-        )}
+        <button
+          onClick={onGoToProgramar}
+          className="bg-[#4573d2] hover:bg-[#3866c6] text-white px-4 py-2 rounded text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Configurar Parámetros</span>
+        </button>
       </div>
     );
   }
@@ -103,16 +98,14 @@ export const EventoView: React.FC<EventoViewProps> = ({
   const [showSavedToast, setShowSavedToast] = React.useState(false);
 
   const handleConfirmAndSave = () => {
-    if (isViewer) return;
+    if (resultado && resultado.daysUsed > 100) {
+      alert(`⚠️ NO SE PUEDE GUARDAR: La programación abarca ${resultado.daysUsed} días, excediendo el límite máximo de 100 días del contrato UNEFCO por ${resultado.daysUsed - 100} día(s). Por favor reajuste las fechas de inicio de los cursos.`);
+      return;
+    }
     setShowSavedToast(true);
     setTimeout(() => {
       setShowSavedToast(false);
     }, 4000);
-  };
-
-  const handleManualDateChangeGuarded = (slotId: string, cursoIdx: number, newDateStr: string) => {
-    if (isViewer) return;
-    onManualDateChange(slotId, cursoIdx, newDateStr);
   };
 
   return (
@@ -138,18 +131,34 @@ export const EventoView: React.FC<EventoViewProps> = ({
         </motion.div>
       )}
 
-      {/* Read-only Notice for Viewer */}
-      {isViewer && (
-        <div className="bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-300 dark:border-zinc-700 p-3.5 rounded-lg flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
-          <Lock className="w-4 h-4 shrink-0" />
-          <span className="text-xs font-semibold">
-            Modo Solo Lectura — Su rol no permite editar ni guardar cambios en este cronograma.
-          </span>
+      {/* OVERFLOW 100 DAYS BLOCKING CRITICAL ALERT BANNER */}
+      {resultado && resultado.daysUsed > 100 && (
+        <div className="bg-red-50 dark:bg-red-950/60 border-2 border-red-500 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-red-900 dark:text-red-100 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 font-bold">
+              <Clock className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-300">
+                🚨 Error de Límite de Contrato ({resultado.daysUsed} / 100 Días)
+              </h4>
+              <p className="text-xs font-medium mt-0.5">
+                La programación manual abarca <strong>{resultado.daysUsed} días calendario</strong>, excediendo por <strong className="text-red-700 dark:text-red-300">+{resultado.daysUsed - 100} día(s)</strong> el límite máximo de 100 días de contrato UNEFCO. Debe reajustar las fechas para poder registrar un cronograma válido.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onGoToProgramar}
+            className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded shadow-sm flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+          >
+            <Sliders className="w-4 h-4" />
+            <span>Ajustar Fechas en Programador</span>
+          </button>
         </div>
       )}
 
       {/* Manual Mode Active Notice */}
-      {modo === 'manual' && !isViewer && (
+      {modo === 'manual' && (
         <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 p-3.5 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
             <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -182,31 +191,20 @@ export const EventoView: React.FC<EventoViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {!isViewer && (
-            <button
-              onClick={handleConfirmAndSave}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded border border-emerald-500 flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-              <span>Guardar en Seguimiento</span>
-            </button>
-          )}
+          <button
+            onClick={handleConfirmAndSave}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded border border-emerald-500 flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+            <span>Guardar en Seguimiento</span>
+          </button>
 
           <button
             onClick={onGoToProgramar}
             className="bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-3.5 py-2 rounded border border-white/20 flex items-center gap-2 transition-colors cursor-pointer"
           >
-            {isViewer ? (
-              <>
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Ver Parámetros</span>
-              </>
-            ) : (
-              <>
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Editar Parámetros</span>
-              </>
-            )}
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Editar Parámetros</span>
           </button>
         </div>
       </div>
@@ -332,8 +330,8 @@ export const EventoView: React.FC<EventoViewProps> = ({
                 slot={slot}
                 index={idx}
                 cursos={cursosCiclo}
-                modo={isViewer ? 'automatico' : modo}
-                onManualDateChange={handleManualDateChangeGuarded}
+                modo={modo}
+                onManualDateChange={onManualDateChange}
                 manualDates={manualDatesMap}
               />
             );

@@ -17,8 +17,7 @@ import {
   Check, 
   Info, 
   BookOpen,
-  GraduationCap,
-  Eye
+  GraduationCap
 } from 'lucide-react';
 
 interface DashboardMetricsProps {
@@ -46,7 +45,6 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
   const [tramiteFilter, setTramiteFilter] = useState<'pendientes' | 'completados' | 'todos'>('pendientes');
 
   const isAdminMode = activeRole === 'admin';
-  const isViewer = activeRole === 'viewer';
   const totalGlobalRecords = history.length;
   const activeGlobalRecords = history.filter(h => h.estado !== 'ANULADO').length;
   const anuladosGlobalRecords = history.filter(h => h.estado === 'ANULADO').length;
@@ -215,38 +213,26 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
       <div className="bg-white dark:bg-[#252628] p-4 rounded-lg border border-zinc-200 dark:border-[#333438] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-700 dark:text-zinc-200 flex items-center justify-center shrink-0">
-            {isViewer ? (
-              <Eye className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
-            ) : isAdminMode ? (
-              <ShieldCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
-            ) : (
-              <UserCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
-            )}
+            {isAdminMode ? <ShieldCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" /> : <UserCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                {isViewer
-                  ? 'Modo Visualización: Solo Lectura'
-                  : isAdminMode
-                    ? 'Modo Administrador: Monitoreo Institucional UNEFCO'
-                    : 'Modo Técnico de Seguimiento: Gestión Académica'}
+                {isAdminMode ? 'Modo Administrador: Monitoreo Institucional UNEFCO' : 'Modo Técnico de Seguimiento: Gestión Académica'}
               </h2>
               <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-mono">
-                {isViewer ? 'Solo Lectura' : isAdminMode ? 'Auditoría' : 'Operativo'}
+                {isAdminMode ? 'Auditoría' : 'Operativo'}
               </span>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              {isViewer
-                ? `Vista de solo lectura de la Sede UNEFCO. Registros académicos: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
-                : isAdminMode
-                  ? `Monitoreo consolidado de la Sede UNEFCO. Registros académicos: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
-                  : `Supervisión de cronogramas y ciclos formativos activos bajo la gestión de ${currentUser?.displayName || (resultado ? resultado.tecnico : 'Técnico de Seguimiento')}.`}
+              {isAdminMode
+                ? `Monitoreo consolidado de la Sede UNEFCO. Registros académicos: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
+                : `Supervisión de cronogramas y ciclos formativos activos bajo la gestión de ${currentUser?.displayName || (resultado ? resultado.tecnico : 'Técnico de Seguimiento')}.`}
             </p>
           </div>
         </div>
 
-        {(isAdminMode || isViewer) && (
+        {isAdminMode && (
           <div className="flex items-center gap-2 text-xs font-mono bg-zinc-50 dark:bg-[#1e1f21] px-3 py-1.5 rounded border border-zinc-200 dark:border-[#333438]">
             <span className="text-zinc-500">Cronogramas Activos:</span>
             <span className="text-zinc-900 dark:text-zinc-100 font-semibold">{activeGlobalRecords} Registrados</span>
@@ -264,7 +250,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
-                Trámites sin Cronograma
+                Trámites sin Calendario
               </span>
               {tramitesPendientes.length > 0 && (
                 <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
@@ -323,7 +309,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
         <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
           <div>
             <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
-              Cronogramas Formativos
+              Calendarios Académicos
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
@@ -385,7 +371,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                 }`}
               >
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Con Cronograma ({tramitesCompletados.length})</span>
+                <span>Con Calendario ({tramitesCompletados.length})</span>
               </button>
 
               <button
@@ -501,7 +487,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                       </div>
                     )}
 
-                    {onGoToProgramar && !isViewer && (
+                    {onGoToProgramar && (
                       <button
                         type="button"
                         onClick={() => onGoToProgramar(item.nombreFacilitador, item.ciNum)}

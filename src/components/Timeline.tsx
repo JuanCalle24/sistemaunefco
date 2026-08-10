@@ -47,16 +47,25 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
 
         {/* Days indicator */}
-        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md">
-          <Hourglass className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+        <div className={`flex items-center gap-3 border px-3 py-1.5 rounded-md ${
+          daysUsed > 100
+            ? 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300'
+            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+        }`}>
+          <Hourglass className={`w-3.5 h-3.5 ${daysUsed > 100 ? 'text-red-600 dark:text-red-400 animate-pulse' : 'text-indigo-600 dark:text-indigo-400'}`} />
           <div className="text-[11px]">
-            <span className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Uso: </span>
-            <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{daysUsed} / 100 Días</span>
+            <span className={`font-bold uppercase tracking-wider ${daysUsed > 100 ? 'text-red-800 dark:text-red-200' : 'text-slate-500 dark:text-slate-400'}`}>Uso: </span>
+            <span className={`font-mono font-bold ${daysUsed > 100 ? 'text-red-900 dark:text-red-100 font-extrabold' : 'text-slate-900 dark:text-slate-100'}`}>{daysUsed} / 100 Días</span>
           </div>
+          {daysUsed > 100 && (
+            <span className="text-[10px] font-extrabold uppercase bg-red-600 text-white px-2 py-0.5 rounded shadow-2xs font-mono">
+              ¡EXCEDE 100 DÍAS!
+            </span>
+          )}
           <div className="w-20 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden ml-1">
             <div
               className={`h-full transition-all ${
-                daysUsed > 90 ? 'bg-amber-500' : 'bg-indigo-600 dark:bg-indigo-400'
+                daysUsed > 100 ? 'bg-red-600' : daysUsed > 90 ? 'bg-amber-500' : 'bg-indigo-600 dark:bg-indigo-400'
               }`}
               style={{ width: `${Math.min(daysUsed, 100)}%` }}
             />

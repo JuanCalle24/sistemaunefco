@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from './lib/firebase';
 import { Header } from './components/Header';
 import { Sidebar, MainViewOption } from './components/Sidebar';
 import { Timeline } from './components/Timeline';
@@ -29,7 +32,7 @@ import { calculateSchedulerAuto, calculateSchedulerManual } from './utils/schedu
 import { generatePDFDocument } from './utils/pdfGenerator';
 import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
 
-import { getLoggedInUser, clearLoggedInUser, logoutUser } from './utils/authService';
+import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser } from './utils/authService';
 import { saveScheduleToFirestore, subscribeToSchedules, deleteScheduleFromFirestore, clearAllSchedulesFromFirestore } from './services/scheduleService';
 import { CorrelativoRecord, subscribeToCorrelativos } from './services/correlativoService';
 import { CorrelativosModule } from './components/CorrelativosModule';
@@ -50,7 +53,6 @@ export default function App() {
     }
   }, [currentUser]);
 
-  const isViewer = activeRole === 'viewer';
   const handleToggleActiveRole = () => {
     if (currentUser?.role !== 'admin') return;
     setActiveRole(prev => (prev === 'admin' ? 'tecnico' : 'admin'));
@@ -118,19 +120,48 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
-  // User Session Listener (correo/contraseña con Supabase)
+  // User Session Listener
   useEffect(() => {
+    // Check saved local user session first
     const savedUser = getLoggedInUser();
     if (savedUser && savedUser.status === 'active') {
       setCurrentUser(savedUser);
       if (savedUser.displayName) {
         setTecnico(savedUser.displayName);
       }
+      setAuthLoading(false);
     } else {
       clearLoggedInUser();
-      setCurrentUser(null);
+      setAuthLoading(false);
     }
-    setAuthLoading(false);
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            const profile = { uid: firebaseUser.uid, ...snap.data() } as UserProfile;
+            if (profile.status === 'inactive') {
+              alert('Su cuenta ha sido desactivada por el Administrador Juan Carlos Calle Chávez.');
+              await signOut(auth);
+              clearLoggedInUser();
+              setCurrentUser(null);
+            } else {
+              setCurrentUser(profile);
+              saveLoggedInUser(profile);
+              if (profile.displayName) {
+                setTecnico(profile.displayName);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Syncing auth state warning:', err);
+        }
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Ensure tecnico state stays synced with logged in currentUser
@@ -153,7 +184,12 @@ export default function App() {
       localStorage.setItem('unefco_form_draft', JSON.stringify(draftState));
     }
 
-    await logoutUser();
+    try {
+      await signOut(auth);
+    } catch (err) {
+      // Ignore
+    }
+    clearLoggedInUser();
     setCurrentUser(null);
   };
 
@@ -502,7 +538,7 @@ export default function App() {
       });
     });
 
-    const { resultado, warnings: warnList } = calculateSchedulerManual(
+    const { resultado, warnings: warnList, errorMsg } = calculateSchedulerManual(
       currentSlots,
       manualInputs,
       facilitador,
@@ -514,13 +550,19 @@ export default function App() {
 
     setProgramacionResult(resultado);
     setWarnings(warnList);
-    if (resultado) saveToHistory(resultado);
-    setSelectedView('eventos');
+
+    if (errorMsg) {
+      setErrorMessage(errorMsg);
+      // Do not save to history or automatically jump views when there is a blocking 100-day limit error
+    } else {
+      setErrorMessage(null);
+      if (resultado) saveToHistory(resultado);
+      setSelectedView('eventos');
+    }
     setIsGenerating(false);
   };
 
   const handleGenerar = () => {
-    if (isViewer) return;
     if (modo === 'automatico') {
       triggerCalculationAuto();
     } else {
@@ -891,7 +933,6 @@ export default function App() {
               errorMessage={errorMessage}
               warnings={warnings}
               currentUser={currentUser}
-              isViewer={isViewer}
             />
           )}
 
@@ -913,8 +954,6 @@ export default function App() {
               onTecnicoChange={setSelectedTecnico}
               availableTecnicos={availableTecnicos}
               onResetFilters={handleResetFilters}
-              onResetFilters={handleResetFilters}
-              isViewer={isViewer}
             />
           )}
 
@@ -1024,3 +1063,6 @@ export default function App() {
     </div>
   );
 }
+
+
+

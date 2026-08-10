@@ -348,7 +348,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <Sliders className="w-3.5 h-3.5" />
-                        <span>Generar Cronograma</span>
+                        <span>Programar Calendario</span>
                       </div>
                       {totalCiclosCount > 0 && (
                         <span className="text-[10px] font-mono bg-zinc-200 dark:bg-[#333438] text-zinc-800 dark:text-zinc-200 px-1.5 py-0.2 rounded">
@@ -414,7 +414,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <History className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-                  <span>Historial de Cronogramas</span>
+                  <span>Historial de Calendarios Académicos</span>
                 </button>
               )}
 

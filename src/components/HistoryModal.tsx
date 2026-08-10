@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Clock, FileDown, RotateCcw, Trash2, ShieldCheck, Lock, AlertCircle, Ban, AlertTriangle, Eye } from 'lucide-react';
+import { X, Clock, FileDown, RotateCcw, Trash2, ShieldCheck, Lock, AlertCircle, Ban, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ProgramacionResultado, UserProfile } from '../types';
 import { formatDateVisual } from '../utils/textUtils';
@@ -33,11 +33,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   if (!isOpen) return null;
 
   const isAdmin = activeRole === 'admin' || currentUser?.role === 'admin';
-  const isViewer = activeRole === 'viewer';
   const currentTechName = currentUser?.displayName?.trim().toLowerCase() || '';
 
-  // Can the user clear all history? Only Admin or if all records belong to current user (never for viewer)
-  const canClearAll = !isViewer && (isAdmin || history.every(h => h.tecnico.trim().toLowerCase() === currentTechName));
+  // Can the user clear all history? Only Admin or if all records belong to current user
+  const canClearAll = isAdmin || history.every(h => h.tecnico.trim().toLowerCase() === currentTechName);
 
   return (
     <AnimatePresence>
@@ -61,13 +60,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               </motion.div>
               <div>
                 <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider flex items-center gap-2 font-display">
-                  <span>Historial de Cronogramas</span>
-                  {isViewer ? (
-                    <span className="text-[9px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 px-1.5 py-0.5 rounded-full font-extrabold flex items-center gap-1 font-display">
-                      <Eye className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
-                      SOLO LECTURA
-                    </span>
-                  ) : isAdmin ? (
+                  <span>Historial de Calendarios Académicos</span>
+                  {isAdmin ? (
                     <span className="text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded-full font-extrabold flex items-center gap-1 font-display">
                       <ShieldCheck className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                       ADMIN
@@ -80,17 +74,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   )}
                 </h2>
                 <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-tight">
-                  {isViewer
-                    ? `Vista de consulta (${history.length} registros)`
-                    : isAdmin 
-                      ? `Vista global de administración (${history.length} registros)`
-                      : `Control de registros del técnico ${currentUser?.displayName || ''}`}
+                  {isAdmin 
+                    ? `Vista global de administración (${history.length} registros)`
+                    : `Control de registros del técnico ${currentUser?.displayName || ''}`}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {history.length > 0 && canClearAll && (
+              {history.length > 0 && (
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
@@ -123,12 +115,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 >
                   <Clock className="w-10 h-10 mx-auto text-zinc-300 dark:text-zinc-600" />
                 </motion.div>
-                <p className="font-semibold text-zinc-600 dark:text-zinc-400">No hay cronogramas guardados en el historial aún.</p>
-                <p className="text-[10px] text-zinc-400">Genere un nuevo cronograma desde la vista principal para registrarlo automáticamente.</p>
+                <p className="font-semibold text-zinc-600 dark:text-zinc-400">No hay calendarios académicos guardados en el historial aún.</p>
+                <p className="text-[10px] text-zinc-400">Programar un nuevo calendario académico desde la vista principal para registrarlo automáticamente.</p>
               </div>
             ) : (
               history.map((item) => {
-                const isOwner = !isViewer && (isAdmin || (item.tecnico && item.tecnico.trim().toLowerCase() === currentTechName));
+                const isOwner = isAdmin || (item.tecnico && item.tecnico.trim().toLowerCase() === currentTechName);
 
                 return (
                   <motion.div
@@ -180,10 +172,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                           onClose();
                         }}
                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs font-display"
-                        title={isViewer ? 'Ver este cronograma' : 'Cargar este cronograma en la vista principal'}
+                        title="Cargar este cronograma en la vista principal"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span>{isViewer ? 'Ver' : 'Cargar'}</span>
+                        <span>Cargar</span>
                       </motion.button>
 
                       <motion.button
@@ -198,7 +190,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         <span>PDF</span>
                       </motion.button>
 
-                      {/* Anular Button (Available to Owner Technician and Admin, never Viewer) */}
+                      {/* Anular Button (Available to Owner Technician and Admin) */}
                       {isOwner && item.estado !== 'ANULADO' && (
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -216,8 +208,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         </motion.button>
                       )}
 
-                      {/* Delete Button (Admin or Owner, never Viewer) */}
-                      {(isOwner) ? (
+                      {/* Delete Button (Admin or Owner) */}
+                      {(isAdmin || isOwner) ? (
                         <motion.button
                           whileHover={{ scale: 1.1, rotate: 6 }}
                           whileTap={{ scale: 0.9 }}
@@ -235,7 +227,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                       ) : (
                         <div 
                           className="p-1.5 text-zinc-400 dark:text-zinc-600 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center gap-1 text-[10px] font-bold font-display"
-                          title={isViewer ? 'Su rol solo permite consultar el historial' : 'Solo el técnico autor o el Administrador pueden modificar este registro'}
+                          title="Solo el técnico autor o el Administrador pueden modificar este registro"
                         >
                           <Lock className="w-3.5 h-3.5 shrink-0" />
                           <span className="hidden sm:inline font-mono">Protegido</span>
@@ -252,11 +244,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           <div className="px-6 py-3 bg-zinc-100 dark:bg-zinc-800/80 border-t border-zinc-200 dark:border-zinc-700 flex justify-between items-center shrink-0">
             <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-              <span>
-                {isViewer
-                  ? 'Su rol de Visualización solo permite consultar y exportar PDF del historial.'
-                  : 'Los técnicos solo pueden anular sus propios cronogramas. Los administradores tienen acceso global.'}
-              </span>
+              <span>Los técnicos solo pueden anular sus propios cronogramas. Los administradores tienen acceso global.</span>
             </span>
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -272,7 +260,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
 
         {/* Are You Sure? Confirmation Step Overlay */}
         <AnimatePresence>
-          {showClearConfirm && canClearAll && (
+          {showClearConfirm && (
             <div className="fixed inset-0 bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 12 }}
@@ -332,3 +320,4 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
     </AnimatePresence>
   );
 };
+

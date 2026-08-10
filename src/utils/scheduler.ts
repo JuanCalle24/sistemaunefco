@@ -198,7 +198,7 @@ export function calculateSchedulerManual(
   feriadosCustom: string[] = [],
   ci?: string,
   ciComplemento?: string
-): { resultado: ProgramacionResultado | null; warnings: string[] } {
+): { resultado: ProgramacionResultado | null; warnings: string[]; errorMsg: string | null } {
   const inicioContrato = new Date(fechaInicioContrato);
   inicioContrato.setHours(0, 0, 0, 0);
   const limiteContrato = addDays(inicioContrato, 99);
@@ -279,6 +279,13 @@ export function calculateSchedulerManual(
 
   const daysUsed = Math.floor((maxFinDate.getTime() - inicioContrato.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
+  let errorMsg: string | null = null;
+  if (daysUsed > 100) {
+    const exceso = daysUsed - 100;
+    errorMsg = `ERROR DE LÍMITE DE CONTRATO (100 DÍAS): La programación manual requiere ${daysUsed} días calendario (del ${formatDateISO(inicioContrato)} al ${formatDateISO(maxFinDate)}), superando por ${exceso} día(s) el límite de 100 días del contrato UNEFCO (Fecha límite autorizada: ${formatDateISO(limiteContrato)}). Debe ajustar las fechas de inicio para mantenerse dentro del límite.`;
+    warnings.unshift(`[MÁXIMO 100 DÍAS SOBREPASADO] Uso actual: ${daysUsed} / 100 días (Exceso: +${exceso} días).`);
+  }
+
   const res: ProgramacionResultado = {
     asignaciones,
     slots,
@@ -299,5 +306,5 @@ export function calculateSchedulerManual(
     fechaInicioContrato: inicioContrato
   });
 
-  return { resultado: res, warnings };
+  return { resultado: res, warnings, errorMsg };
 }

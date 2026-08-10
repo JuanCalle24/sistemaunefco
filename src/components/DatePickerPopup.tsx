@@ -8,6 +8,7 @@ interface DatePickerPopupProps {
   onSelectDate: (d: Date) => void;
   feriadosCustom?: string[];
   minDate?: Date | null;
+  maxDate?: Date | null;
   title?: string;
   subtitle?: string;
   placeholder?: string;
@@ -34,6 +35,7 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
   onSelectDate,
   feriadosCustom = [],
   minDate = null,
+  maxDate = null,
   title = "INICIO DE FECHA",
   subtitle = "Selecciona una fecha hábil (Lun-Sáb)",
   placeholder = "Seleccionar fecha...",
@@ -99,6 +101,7 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
   today.setHours(0, 0, 0, 0);
 
   const minDateNormalized = minDate ? new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate(), 0, 0, 0, 0) : null;
+  const maxDateNormalized = maxDate ? new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate(), 0, 0, 0, 0) : null;
 
   const days: React.ReactNode[] = [];
 
@@ -114,7 +117,8 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
     const isSun = dayDate.getDay() === 0;
     const isHol = allHolidays.includes(iso);
     const isBeforeMin = minDateNormalized ? dayDate < minDateNormalized : false;
-    const isDisabled = isSun || isHol || isBeforeMin;
+    const isAfterMax = maxDateNormalized ? dayDate > maxDateNormalized : false;
+    const isDisabled = isSun || isHol || isBeforeMin || isAfterMax;
 
     const isSelected = selectedDate && selectedDate.toDateString() === dayDate.toDateString();
     const isToday = dayDate.toDateString() === today.toDateString();
@@ -133,6 +137,8 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
 
     const titleText = isBeforeMin 
       ? `No permitido: fecha anterior al mínimo (${minDateNormalized ? formatDateVisual(minDateNormalized, false) : ''})` 
+      : isAfterMax
+      ? `No permitido: excede el límite de 100 días de contrato (${maxDateNormalized ? formatDateVisual(maxDateNormalized, false) : ''})`
       : isHol ? "Feriado no hábil" 
       : isSun ? "Domingo no hábil" 
       : formatDateVisual(dayDate, true);

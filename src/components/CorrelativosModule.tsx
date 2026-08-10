@@ -21,8 +21,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Hash,
-  Lock,
-  Eye
+  Lock
 } from 'lucide-react';
 import { 
   CorrelativoRecord, 
@@ -32,7 +31,7 @@ import {
   subscribeToCorrelativos, 
   subscribeToCounters 
 } from '../services/correlativoService';
-import { ProgramacionResultado, UserProfile, UserRole } from '../types';
+import { ProgramacionResultado, UserProfile } from '../types';
 
 const YEAR = 2026;
 
@@ -67,7 +66,7 @@ const STEP_ORDER = ['cp', 'inf', 'ini'] as const;
 
 interface CorrelativosModuleProps {
   currentUser: UserProfile | null;
-  activeRole: UserRole;
+  activeRole: 'admin' | 'tecnico';
   tecnicoName: string;
   schedulesHistory?: ProgramacionResultado[];
   onPreloadFacilitadorForSchedule?: (nombre: string, ci: string, ciComp: string) => void;
@@ -80,8 +79,6 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
   schedulesHistory = [],
   onPreloadFacilitadorForSchedule
 }) => {
-  const isViewer = activeRole === 'viewer';
-
   // Real-time Firestore State
   const [records, setRecords] = useState<CorrelativoRecord[]>([]);
   const [counters, setCounters] = useState<CorrelativoCounters>(DEFAULT_COUNTERS);
@@ -213,9 +210,6 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Validate Flow before Generating
   const validateFlow = (): string | null => {
-    if (isViewer) {
-      return 'Su rol de Visualización no permite generar correlativos.';
-    }
     if (!facilitador.trim()) {
       return 'El nombre completo del facilitador es obligatorio.';
     }
@@ -257,7 +251,6 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Handle Generate
   const handleGenerate = async () => {
-    if (isViewer) return;
     setValidationError(null);
     const err = validateFlow();
     if (err) {
@@ -329,7 +322,6 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Handle Anulacion Confirmation
   const handleConfirmAnulacion = async () => {
-    if (isViewer) return;
     if (!anularModalRecord) return;
     if (!anularMotivo.trim()) {
       alert('Debe especificar un motivo de anulación obligatorio.');
@@ -395,7 +387,6 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Load pending process into form
   const handleLoadPending = (item: { ci: string; name: string; nextStep: 'cp' | 'inf' | 'ini' }) => {
-    if (isViewer) return;
     const parts = item.ci.split('-');
     setCiNum(parts[0] || '');
     setCiComp(parts[1] || '');
@@ -436,20 +427,9 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Read-only Notice for Viewer */}
-      {isViewer && (
-        <div className="bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-300 dark:border-zinc-700 p-3.5 rounded-lg flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
-          <Eye className="w-4 h-4 shrink-0" />
-          <span className="text-xs font-semibold">
-            Modo Solo Lectura — Puede consultar el historial de correlativos, pero no generar ni anular documentos.
-          </span>
-        </div>
-      )}
-
       {/* ------------------------------------------------------------------- */}
       {/* MAIN GENERATION FORM CARD                                           */}
       {/* ------------------------------------------------------------------- */}
-      {!isViewer && (
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
         <div className="p-4 md:p-5 border-b border-zinc-200 dark:border-[#333438] bg-zinc-50 dark:bg-[#1e1f21] flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -882,7 +862,6 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
           )}
         </div>
       </div>
-      )}
 
       {/* ------------------------------------------------------------------- */}
       {/* PENDING PROCESSES PANEL (PROCESOS PENDIENTES POR CI)                */}
@@ -896,11 +875,9 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                 Procesos en Curso Pendientes ({pendingProcesses.length})
               </h3>
             </div>
-            {!isViewer && (
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                Haz clic en una tarjeta para retomar el siguiente paso
-              </span>
-            )}
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              Haz clic en una tarjeta para retomar el siguiente paso
+            </span>
           </div>
 
           <div className="p-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -910,9 +887,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                 <div
                   key={item.ci}
                   onClick={() => handleLoadPending(item)}
-                  className={`p-3 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded transition-colors space-y-2 group ${
-                    isViewer ? 'cursor-default' : 'hover:bg-zinc-100 dark:hover:bg-[#2d2e32] cursor-pointer'
-                  }`}
+                  className="p-3 bg-zinc-50 hover:bg-zinc-100 dark:bg-[#1e1f21] dark:hover:bg-[#2d2e32] border border-zinc-200 dark:border-[#333438] rounded cursor-pointer transition-colors space-y-2 group"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
@@ -929,12 +904,10 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
                   <div className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center justify-between pt-1.5 border-t border-zinc-200 dark:border-[#333438]">
                     <span>Avance: <strong>{item.doneSteps.length}/3 Pasos</strong></span>
-                    {!isViewer && (
-                      <span className="flex items-center gap-1 text-[#4573d2] font-medium">
-                        <span>Continuar</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1 text-[#4573d2] font-medium">
+                      <span>Continuar</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
                   </div>
                 </div>
               );
@@ -1064,7 +1037,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                           )}
 
                           {/* Action button if active */}
-                          {!isAnulado && !isViewer && (
+                          {!isAnulado && (
                             <div className="pt-1.5 border-t border-zinc-100 dark:border-[#333438] flex items-center justify-between text-[11px]">
                               <span className="text-zinc-400">Gen: {item.usuarioGenerador}</span>
                               <button
@@ -1077,11 +1050,6 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                               >
                                 Anular
                               </button>
-                            </div>
-                          )}
-                          {!isAnulado && isViewer && (
-                            <div className="pt-1.5 border-t border-zinc-100 dark:border-[#333438] text-[11px] text-zinc-400">
-                              Gen: {item.usuarioGenerador}
                             </div>
                           )}
                         </div>
@@ -1098,7 +1066,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* CANCELLATION MODAL WITH DEPENDENCY WARNING                          */}
       {/* ------------------------------------------------------------------- */}
-      {anularModalRecord && !isViewer && (
+      {anularModalRecord && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-150">
             <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
@@ -1161,7 +1129,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* PROMINENT SUCCESS CONFIRMATION MODAL                                */}
       {/* ------------------------------------------------------------------- */}
-      {successModalRecord && !isViewer && (
+      {successModalRecord && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl space-y-6 text-center animate-in zoom-in-95 duration-200">
             

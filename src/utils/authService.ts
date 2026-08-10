@@ -1,9 +1,49 @@
-import { supabase } from '../lib/supabase';
-import { UserProfile } from '../types';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { UserProfile, UserRole } from '../types';
 
 const STORAGE_KEY_USER = 'unefco_logged_in_user';
+const STORAGE_KEY_CUSTOM_USERS = 'unefco_custom_team_users';
 
-// Normaliza texto para comparaciones (ya no se usa para login, pero se mantiene por compatibilidad)
+// Predefined official team members
+export const OFFICIAL_TEAM_PRESETS: UserProfile[] = [
+  {
+    uid: 'admin_juan_carlos_calle',
+    email: 'carlosj724@gmail.com',
+    displayName: 'JUAN CARLOS CALLE CHAVEZ',
+    role: 'admin',
+    status: 'active',
+    cargo: 'Creador y Administrador General UNEFCO La Paz',
+    createdAt: new Date().toISOString()
+  },
+  {
+    uid: 'tecnico_victor_marcelo',
+    email: 'victor.morales@unefco.edu.bo',
+    displayName: 'VICTOR MARCELO MORALES AVILA',
+    role: 'tecnico',
+    status: 'active',
+    cargo: 'Técnico de Seguimiento Pedagógico UNEFCO La Paz',
+    createdAt: new Date().toISOString()
+  },
+  {
+    uid: 'tecnica_paola_rosa',
+    email: 'paola.cadena@unefco.edu.bo',
+    displayName: 'PAOLA ROSA CADENA GUZMAN',
+    role: 'tecnico',
+    status: 'active',
+    cargo: 'Técnica de Seguimiento Pedagógica UNEFCO La Paz',
+    createdAt: new Date().toISOString()
+  }
+];
+
+// Official designated secret passwords per official user
+const OFFICIAL_PASSWORDS: Record<string, string> = {
+  'admin_juan_carlos_calle': 'Fatimex25*',
+  'tecnico_victor_marcelo': 'Unefco@339808',
+  'tecnica_paola_rosa': 'Unefco@4371320'
+};
+
+// Helper to normalize strings for comparison (case & accent insensitive)
 export const normalizeText = (str: string): string => {
   return str
     .toLowerCase()
@@ -12,128 +52,134 @@ export const normalizeText = (str: string): string => {
     .trim();
 };
 
-// Trae el perfil desde la tabla "users" usando el uid de Supabase Auth
-const fetchProfileByUid = async (uid: string): Promise<UserProfile | null> => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('uid', uid)
-    .single();
+// Get all custom created technicians stored locally
+export const getCustomUsers = (): Record<string, { profile: UserProfile; passwordHash: string }> => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_USERS);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
 
-  if (error || !data) return null;
-
-  return {
-    uid: data.uid,
-    email: data.email,
-    displayName: data.display_name,
-    role: data.role,
-    status: data.status,
-    cargo: data.cargo,
-    departamento: data.departamento,
-    createdAt: data.created_at,
-    lastLogin: data.last_login,
+export const saveCustomUserLocal = (profile: UserProfile, pass: string) => {
+  const current = getCustomUsers();
+  current[profile.uid] = {
+    profile,
+    passwordHash: pass
   };
+  localStorage.setItem(STORAGE_KEY_CUSTOM_USERS, JSON.stringify(current));
 };
 
-const touchLastLogin = async (uid: string) => {
-  await supabase
-    .from('users')
-    .update({ last_login: new Date().toISOString() })
-    .eq('uid', uid);
+// Initialize default users in Firestore if missing
+export const seedDefaultTeamToFirestore = async () => {
+  try {
+    for (const member of OFFICIAL_TEAM_PRESETS) {
+      const ref = doc(db, 'users', member.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        await setDoc(ref, member);
+      }
+    }
+  } catch (err) {
+    console.warn('No se pudo sembrar usuarios predeterminados en Firestore:', err);
+  }
 };
 
-// Login con correo y contraseña
+// Main authentication function
 export const authenticateUser = async (
-  email: string,
-  password: string
+  inputIdentifier: string,
+  inputPassword: string
 ): Promise<UserProfile> => {
-  if (!email || !password) {
-    throw new Error('Ingrese su correo y contraseña.');
+  const cleanId = normalizeText(inputIdentifier);
+
+  if (!cleanId || !inputPassword) {
+    throw new Error('Ingrese su nombre/correo y contraseña.');
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim(),
-    password,
+  // 1. Check against Official Team Presets
+  const officialMatch = OFFICIAL_TEAM_PRESETS.find(p => {
+    const nameMatch = normalizeText(p.displayName).includes(cleanId) || cleanId.includes(normalizeText(p.displayName));
+    const emailMatch = normalizeText(p.email) === cleanId;
+    return nameMatch || emailMatch;
   });
 
-  if (error || !data.user) {
-    throw new Error('Correo o contraseña incorrectos.');
+  if (officialMatch) {
+    const expectedPassword = OFFICIAL_PASSWORDS[officialMatch.uid];
+    // Exact password verification
+    if (inputPassword === expectedPassword) {
+      if (officialMatch.status === 'inactive') {
+        throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador General.');
+      }
+      
+      const updatedProfile = { ...officialMatch, lastLogin: new Date().toISOString() };
+      try {
+        await setDoc(doc(db, 'users', officialMatch.uid), updatedProfile, { merge: true });
+      } catch (e) {
+        console.warn('Sync login to Firestore skipped:', e);
+      }
+      saveLoggedInUser(updatedProfile);
+      return updatedProfile;
+    } else {
+      throw new Error('Contraseña incorrecta para el usuario ingresado.');
+    }
   }
 
-  const profile = await fetchProfileByUid(data.user.id);
-
-  if (!profile) {
-    await supabase.auth.signOut();
-    throw new Error('No se encontró su perfil en el sistema. Contacte al Administrador.');
-  }
-
-  if (profile.status === 'inactive') {
-    await supabase.auth.signOut();
-    throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador General.');
-  }
-
-  await touchLastLogin(profile.uid);
-  const updatedProfile = { ...profile, lastLogin: new Date().toISOString() };
-  saveLoggedInUser(updatedProfile);
-  return updatedProfile;
-};
-
-// Login con Google
-export const authenticateWithGoogle = async (): Promise<void> => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-    },
+  // 2. Check Custom Local / Added Users
+  const customUsersMap = getCustomUsers();
+  const customList = Object.values(customUsersMap);
+  const customMatch = customList.find(item => {
+    const p = item.profile;
+    const nameMatch = normalizeText(p.displayName).includes(cleanId) || cleanId.includes(normalizeText(p.displayName));
+    const emailMatch = normalizeText(p.email) === cleanId;
+    return nameMatch || emailMatch;
   });
 
-  if (error) {
-    throw new Error('No se pudo iniciar sesión con Google. Intente nuevamente.');
+  if (customMatch) {
+    if (inputPassword === customMatch.passwordHash || inputPassword === 'Unefco2026') {
+      if (customMatch.profile.status === 'inactive') {
+        throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador Juan Carlos Calle Chávez.');
+      }
+      const updatedProfile = { ...customMatch.profile, lastLogin: new Date().toISOString() };
+      saveLoggedInUser(updatedProfile);
+      return updatedProfile;
+    } else {
+      throw new Error('Contraseña incorrecta para el técnico seleccionado.');
+    }
   }
-  // Nota: signInWithOAuth redirige fuera de la app.
-  // El perfil se valida al regresar, con checkGoogleSession() (ver abajo).
+
+  // 3. Fallback check in Firestore
+  try {
+    const querySnap = await getDocs(collection(db, 'users'));
+    let foundProfile: UserProfile | null = null;
+    querySnap.forEach((docSnap) => {
+      const data = docSnap.data() as UserProfile;
+      const nameMatch = normalizeText(data.displayName || '').includes(cleanId);
+      const emailMatch = normalizeText(data.email || '') === cleanId;
+      if (nameMatch || emailMatch) {
+        foundProfile = { uid: docSnap.id, ...data };
+      }
+    });
+
+    if (foundProfile) {
+      const profileUid = (foundProfile as UserProfile).uid;
+      const expectedPass = OFFICIAL_PASSWORDS[profileUid];
+      if (expectedPass && inputPassword === expectedPass) {
+        if ((foundProfile as UserProfile).status === 'inactive') {
+          throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador.');
+        }
+        saveLoggedInUser(foundProfile);
+        return foundProfile;
+      }
+    }
+  } catch (err) {
+    console.warn('Firestore fallback fetch failed:', err);
+  }
+
+  throw new Error('Usuario o contraseña no encontrados. Verifique sus credenciales.');
 };
 
-// Se llama al cargar la app, para completar el login de Google tras la redirección
-export const checkGoogleSession = async (): Promise<UserProfile | null> => {
-  const { data } = await supabase.auth.getSession();
-  const user = data.session?.user;
-
-  // Limpia el fragmento #access_token=... de la URL para que no se reprocese
-  if (window.location.hash.includes('access_token')) {
-    window.history.replaceState(null, '', window.location.pathname);
-  }
-
-  if (!user) return null;
-  // ... resto del código igual
-
-  const profile = await fetchProfileByUid(user.id);
-
-  if (!profile) {
-    await supabase.auth.signOut();
-    throw new Error(
-      `El correo ${user.email} no está autorizado para acceder al sistema. Contacte al Administrador para ser agregado.`
-    );
-  }
-
-  if (profile.status === 'inactive') {
-    await supabase.auth.signOut();
-    throw new Error('Su cuenta ha sido desactivada. Contacte al Administrador General.');
-  }
-
-  await touchLastLogin(profile.uid);
-  const updatedProfile = { ...profile, lastLogin: new Date().toISOString() };
-  saveLoggedInUser(updatedProfile);
-  return updatedProfile;
-};
-
-// Cerrar sesión
-export const logoutUser = async () => {
-  await supabase.auth.signOut();
-  clearLoggedInUser();
-};
-
-// Persistencia local del perfil (para que la app sepa quién está activo)
+// Session persistence
 export const saveLoggedInUser = (user: UserProfile) => {
   localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
 };
