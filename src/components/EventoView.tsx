@@ -218,7 +218,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Card 1: Facilitador */}
-          <div className="bg-white dark:bg-[#252628] p-4 flex flex-col items-center text-center border border-zinc-200 dark:border-[#333438] rounded-lg">
+          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
             <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
               <User className="w-5 h-5" />
             </div>
@@ -236,7 +236,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
           </div>
 
           {/* Card 2: Distrito / Lugar */}
-          <div className="bg-white dark:bg-[#252628] p-4 flex flex-col items-center text-center border border-zinc-200 dark:border-[#333438] rounded-lg">
+          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
             <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
               <MapPin className="w-5 h-5" />
             </div>
@@ -249,7 +249,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
           </div>
 
           {/* Card 3: Mes / Versión */}
-          <div className="bg-white dark:bg-[#252628] p-4 flex flex-col items-center text-center border border-zinc-200 dark:border-[#333438] rounded-lg">
+          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
             <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
               <Calendar className="w-5 h-5" />
             </div>
@@ -262,7 +262,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
           </div>
 
           {/* Card 4: Modalidad */}
-          <div className="bg-white dark:bg-[#252628] p-4 flex flex-col items-center text-center border border-zinc-200 dark:border-[#333438] rounded-lg">
+          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
             <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
               <Laptop className="w-5 h-5" />
             </div>

@@ -32,7 +32,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   const diaHoy = Math.floor((hoy.getTime() - fechaInicioContrato.getTime()) / (1000 * 60 * 60 * 24));
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-5 shadow-2xs">
+    <div className="glass-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-5 pb-3 border-b border-slate-200 dark:border-slate-800">
         <div>
           <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2 font-display">

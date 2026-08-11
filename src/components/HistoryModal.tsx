@@ -126,7 +126,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   <motion.div
                     key={item.idTransaccion}
                     whileHover={{ x: 2 }}
-                    className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all shadow-2xs"
+                    className="glass-panel p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 transition-all shadow-2xs hover:border-emerald-500/30"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">

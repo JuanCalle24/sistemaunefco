@@ -858,17 +858,17 @@ export default function App() {
                 <span className="text-zinc-300 dark:text-zinc-700">/</span>
                 <span className="text-zinc-700 dark:text-zinc-200 font-bold">
                   {selectedView === 'programar' && 'Programación y Parámetros'}
-                  {selectedView === 'eventos' && 'Evento y Cursos Programados'}
-                  {selectedView === 'dashboard' && 'Métricas e Indicadores'}
-                  {selectedView === 'historial' && 'Historial de Programaciones'}
+                  {selectedView === 'eventos' && 'Calendario y Módulos Programados'}
+                  {selectedView === 'dashboard' && 'Resumen Académico e Indicadores'}
+                  {selectedView === 'historial' && 'Historial de Calendarios Académicos'}
                   {selectedView === 'correlativos' && 'Correlativos UNEFCO'}
                 </span>
               </nav>
               <h1 className="font-display text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
-                {selectedView === 'programar' && 'Programar Cronograma'}
-                {selectedView === 'eventos' && 'Cursos del Evento'}
-                {selectedView === 'dashboard' && 'Dashboard y Métricas'}
-                {selectedView === 'historial' && 'Historial Registrado'}
+                {selectedView === 'programar' && 'Programar Calendario Académico'}
+                {selectedView === 'eventos' && 'Calendario de Eventos y Cursos'}
+                {selectedView === 'dashboard' && 'Resumen Académico UNEFCO'}
+                {selectedView === 'historial' && 'Historial de Calendarios'}
                 {selectedView === 'correlativos' && 'Correlativos UNEFCO'}
               </h1>
             </div>
