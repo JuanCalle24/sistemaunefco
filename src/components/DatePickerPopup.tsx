@@ -126,13 +126,13 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
     let cellClass = "h-9 w-9 text-xs font-bold font-numeric rounded-full flex items-center justify-center transition-all duration-150 cursor-pointer ";
 
     if (isSelected) {
-      cellClass += "bg-indigo-600 text-white font-extrabold shadow-md ring-2 ring-indigo-300 dark:ring-indigo-800 scale-105";
+      cellClass += "bg-emerald-600 text-white font-extrabold shadow-md ring-2 ring-emerald-300 dark:ring-emerald-800 scale-105";
     } else if (isDisabled) {
       cellClass += "text-rose-400 dark:text-rose-500 bg-rose-50/60 dark:bg-rose-950/30 line-through cursor-not-allowed opacity-60";
     } else if (isToday) {
-      cellClass += "border-2 border-indigo-600 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300 font-extrabold bg-indigo-50/60 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900";
+      cellClass += "border-2 border-emerald-600 dark:border-emerald-400 text-emerald-700 dark:text-emerald-300 font-extrabold bg-emerald-50/60 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900";
     } else {
-      cellClass += "text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400";
+      cellClass += "text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 dark:hover:text-emerald-300";
     }
 
     const titleText = isBeforeMin 
@@ -160,7 +160,7 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
     );
   }
 
-  const defaultBtnStyle = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-600 dark:hover:border-indigo-500 rounded-sm px-3 py-2 text-xs cursor-pointer flex items-center justify-between shadow-2xs transition-colors group";
+  const defaultBtnStyle = "w-full bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] hover:border-emerald-600 dark:hover:border-emerald-500 rounded-lg px-3.5 py-2.5 text-sm cursor-pointer flex items-center justify-between shadow-2xs transition-all group focus:outline-none focus:ring-2 focus:ring-emerald-500/20";
 
   return (
     <div className="w-full">
@@ -170,10 +170,10 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
         onClick={() => setIsOpen(true)}
         className={buttonClassName || defaultBtnStyle}
       >
-        <span className={selectedDate ? "font-bold font-numeric text-indigo-950 dark:text-indigo-200" : "text-slate-400 dark:text-slate-500 font-semibold"}>
+        <span className={selectedDate ? "font-bold font-numeric text-emerald-950 dark:text-emerald-200" : "text-zinc-400 dark:text-zinc-500 font-medium"}>
           {selectedDate ? formatDateVisual(selectedDate, true) : placeholder}
         </span>
-        <CalendarIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
+        <CalendarIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
       </button>
 
       {/* Modal Backdrop & Popup Calendar */}

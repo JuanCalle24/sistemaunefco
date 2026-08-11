@@ -246,6 +246,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <PanelLeftOpen className="w-4 h-4" />
               </button>
 
+              {/* Paso 1: Correlativos */}
+              <button
+                onClick={() => {
+                  onSelectView('correlativos');
+                  setIsCollapsed(false);
+                }}
+                className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer ${
+                  selectedView === 'correlativos'
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
+                }`}
+                title="1. Correlativos UNEFCO"
+              >
+                <Stamp className="w-4 h-4" />
+              </button>
+
+              {/* Paso 2: Programar Calendario */}
               <button
                 onClick={() => {
                   onSelectView('programar');
@@ -253,195 +270,193 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer relative ${
                   selectedView === 'programar'
-                    ? 'bg-zinc-200 dark:bg-[#2d2e32] text-zinc-900 dark:text-white font-bold'
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
                 }`}
-                title="Parámetros de Programación"
+                title="2. Programar Calendario"
               >
-                <CalendarDays className="w-4 h-4" />
+                <Sliders className="w-4 h-4" />
                 {totalCiclosCount > 0 && (
-                  <span className="absolute -top-1 -right-1 text-[9px] font-mono bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900 w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 text-[9px] font-mono bg-emerald-700 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
                     {totalCiclosCount}
                   </span>
                 )}
               </button>
 
+              {/* Paso 3: Ver Cursos Programados */}
               <button
                 onClick={() => onSelectView('eventos')}
                 className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer relative ${
                   selectedView === 'eventos'
-                    ? 'bg-zinc-200 dark:bg-[#2d2e32] text-zinc-900 dark:text-white'
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
                 }`}
-                title="Eventos Programados"
+                title="3. Ver Cursos Programados"
               >
                 <BookOpen className="w-4 h-4" />
               </button>
 
-              <button
-                onClick={() => onSelectView('correlativos')}
-                className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer ${
-                  selectedView === 'correlativos'
-                    ? 'bg-zinc-200 dark:bg-[#2d2e32] text-zinc-900 dark:text-white'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
-                }`}
-                title="Correlativos"
-              >
-                <Stamp className="w-4 h-4" />
-              </button>
-
+              {/* Paso 4: Dashboard & Métricas */}
               <button
                 onClick={() => onSelectView('dashboard')}
                 className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer ${
                   selectedView === 'dashboard'
-                    ? 'bg-zinc-200 dark:bg-[#2d2e32] text-zinc-900 dark:text-white'
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
                 }`}
-                title="Dashboard"
+                title="4. Dashboard & Métricas"
               >
                 <LayoutDashboard className="w-4 h-4" />
               </button>
 
+              {/* Paso 5: Historial */}
               {onOpenHistory && (
                 <button
                   onClick={onOpenHistory}
                   className="w-9 h-9 rounded text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center justify-center transition-colors cursor-pointer"
-                  title="Historial"
+                  title="5. Historial de Calendarios Académicos"
                 >
                   <History className="w-4 h-4" />
                 </button>
               )}
             </div>
           ) : (
-            /* Expanded Navigation */
+            /* Expanded Navigation organized by Sequential Workflow */
             <>
-              <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2 pt-2 pb-1">
-                Workspace
+              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-2.5 pt-3 pb-1.5 font-display">
+                Flujo de Trabajo Académico
               </div>
 
-              {/* Accordion Programación */}
-              <div className="rounded border border-zinc-200 dark:border-[#2e2f33] overflow-hidden bg-zinc-50/50 dark:bg-[#252628]/50">
+              <div className="space-y-1">
+                {/* Paso 1: Generar Correlativos */}
                 <button
-                  onClick={() => setOpenProgramacion(!openProgramacion)}
-                  className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-[#2d2e32] transition-colors cursor-pointer"
+                  onClick={() => onSelectView('correlativos')}
+                  className={`w-full px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between transition-all cursor-pointer ${
+                    selectedView === 'correlativos'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-l-3 border-emerald-600 font-bold shadow-2xs'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628]'
+                  }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <CalendarDays className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-                    <span>Programación Académica</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-mono flex items-center justify-center shrink-0">
+                      1
+                    </span>
+                    <Stamp className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">Generar Correlativos</span>
                   </div>
-                  {openProgramacion ? (
-                    <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
+                </button>
+
+                {/* Paso 2: Programar Calendario */}
+                <button
+                  onClick={() => onSelectView('programar')}
+                  className={`w-full px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between transition-all cursor-pointer ${
+                    selectedView === 'programar'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-l-3 border-emerald-600 font-bold shadow-2xs'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-mono flex items-center justify-center shrink-0">
+                      2
+                    </span>
+                    <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">Programar Calendario</span>
+                  </div>
+                  {totalCiclosCount > 0 && (
+                    <span className="text-xs font-mono font-bold bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 px-1.5 py-0.5 rounded">
+                      {totalCiclosCount}
+                    </span>
                   )}
                 </button>
 
-                {openProgramacion && (
-                  <div className="bg-white dark:bg-[#1e1f21] border-t border-zinc-200 dark:border-[#2e2f33] divide-y divide-zinc-100 dark:divide-[#2a2b2e]">
-                    <button
-                      onClick={() => onSelectView('programar')}
-                      className={`w-full px-3.5 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                        selectedView === 'programar'
-                          ? 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-900 dark:text-white border-l-2 border-zinc-700 dark:border-zinc-300 font-semibold'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#252628]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Sliders className="w-3.5 h-3.5" />
-                        <span>Programar Calendario</span>
-                      </div>
-                      {totalCiclosCount > 0 && (
-                        <span className="text-[10px] font-mono bg-zinc-200 dark:bg-[#333438] text-zinc-800 dark:text-zinc-200 px-1.5 py-0.2 rounded">
-                          {totalCiclosCount}
-                        </span>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => onSelectView('eventos')}
-                      className={`w-full px-3.5 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                        selectedView === 'eventos'
-                          ? 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-900 dark:text-white border-l-2 border-zinc-700 dark:border-zinc-300 font-semibold'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#252628]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-3.5 h-3.5" />
-                        <span>Cursos Programados</span>
-                      </div>
-                      {hasResult && (
-                        <span className="text-[9px] uppercase bg-zinc-200 dark:bg-[#333438] text-zinc-700 dark:text-zinc-300 px-1.5 py-0.2 rounded font-mono">
-                          Activo
-                        </span>
-                      )}
-                    </button>
+                {/* Paso 3: Ver Cursos Programados */}
+                <button
+                  onClick={() => onSelectView('eventos')}
+                  className={`w-full px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between transition-all cursor-pointer ${
+                    selectedView === 'eventos'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-l-3 border-emerald-600 font-bold shadow-2xs'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-mono flex items-center justify-center shrink-0">
+                      3
+                    </span>
+                    <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">Ver Cursos Programados</span>
                   </div>
+                  {hasResult && (
+                    <span className="text-xs font-bold uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded font-mono">
+                      Activo
+                    </span>
+                  )}
+                </button>
+
+                {/* Paso 4: Dashboard & Métricas */}
+                <button
+                  onClick={() => onSelectView('dashboard')}
+                  className={`w-full px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between transition-all cursor-pointer ${
+                    selectedView === 'dashboard'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-l-3 border-emerald-600 font-bold shadow-2xs'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-mono flex items-center justify-center shrink-0">
+                      4
+                    </span>
+                    <LayoutDashboard className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">Dashboard & Métricas</span>
+                  </div>
+                </button>
+
+                {/* Paso 5: Historial de Calendarios Académicos */}
+                {onOpenHistory && (
+                  <button
+                    onClick={onOpenHistory}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center gap-2.5 transition-all cursor-pointer"
+                  >
+                    <span className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-mono flex items-center justify-center shrink-0">
+                      5
+                    </span>
+                    <History className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">Historial de Calendarios</span>
+                  </button>
                 )}
               </div>
 
-              {/* Menu Items */}
-              <button
-                onClick={() => onSelectView('correlativos')}
-                className={`w-full px-3 py-2 rounded text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                  selectedView === 'correlativos'
-                    ? 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-900 dark:text-white font-semibold'
-                    : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628]'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Stamp className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-                  <span>Correlativos UNEFCO</span>
+              {/* Herramientas de Exportación */}
+              <div className="pt-3 border-t border-zinc-200 dark:border-[#2e2f33] mt-3">
+                <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-2.5 pb-1.5 font-display">
+                  Herramientas
                 </div>
-              </button>
 
-              <button
-                onClick={() => onSelectView('dashboard')}
-                className={`w-full px-3 py-2 rounded text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                  selectedView === 'dashboard'
-                    ? 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-900 dark:text-white font-semibold'
-                    : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628]'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <LayoutDashboard className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-                  <span>Dashboard & Métricas</span>
-                </div>
-              </button>
+                {onOpenShare && (
+                  <button
+                    onClick={onOpenShare}
+                    disabled={pdfDisabled}
+                    className="w-full px-3 py-2 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] disabled:opacity-30 flex items-center gap-2.5 transition-colors cursor-pointer my-0.5"
+                  >
+                    <Send className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
+                    <span>Notificar & Compartir</span>
+                  </button>
+                )}
 
-              {onOpenHistory && (
-                <button
-                  onClick={onOpenHistory}
-                  className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <History className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-                  <span>Historial de Calendarios Académicos</span>
-                </button>
-              )}
+                {onGeneratePDF && (
+                  <button
+                    onClick={onGeneratePDF}
+                    disabled={pdfDisabled}
+                    className="w-full px-3 py-2 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] disabled:opacity-30 flex items-center gap-2.5 transition-colors cursor-pointer my-0.5"
+                  >
+                    <FileDown className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
+                    <span>Exportar PDF</span>
+                  </button>
+                )}
+              </div>
 
-              {onOpenShare && (
-                <button
-                  onClick={onOpenShare}
-                  disabled={pdfDisabled}
-                  className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] disabled:opacity-30 flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Send className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-                  <span>Notificar & Compartir</span>
-                </button>
-              )}
-
-              {onGeneratePDF && (
-                <button
-                  onClick={onGeneratePDF}
-                  disabled={pdfDisabled}
-                  className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] disabled:opacity-30 flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <FileDown className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-                  <span>Exportar PDF</span>
-                </button>
-              )}
-
-              <div className="pt-2 border-t border-zinc-200 dark:border-[#2e2f33] mt-2">
-                <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2 mb-1">
+              {/* Administración */}
+              <div className="pt-3 border-t border-zinc-200 dark:border-[#2e2f33] mt-2">
+                <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-2.5 pb-1.5 font-display">
                   Administración
                 </div>
 
@@ -449,13 +464,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onOpenUserManagement && (
                     <button
                       onClick={onOpenUserManagement}
-                      className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center justify-between transition-colors cursor-pointer my-0.5"
+                      className="w-full px-3 py-2 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center justify-between transition-colors cursor-pointer my-0.5"
                     >
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                      <div className="flex items-center gap-2.5">
+                        <Users className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
                         <span>Gestión de Técnicos</span>
                       </div>
-                      <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     </button>
                   )
                 ) : (
@@ -468,10 +483,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {isAdmin && (
                   <button
                     onClick={onOpenAdminModal}
-                    className="w-full px-3 py-2 rounded text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center justify-between transition-colors cursor-pointer my-0.5"
+                    className="w-full px-3 py-2 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] flex items-center justify-between transition-colors cursor-pointer my-0.5"
                   >
-                    <div className="flex items-center gap-2">
-                      <Settings2 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                    <div className="flex items-center gap-2.5">
+                      <Settings2 className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
                       <span>Feriados & Oferta</span>
                     </div>
                   </button>
