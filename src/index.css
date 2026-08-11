@@ -189,7 +189,66 @@ input, button, select, textarea, optgroup {
 .dark .badge-success { background: rgba(20, 122, 58, 0.2); color: #4ADE80; }
 .dark .badge-neutral { background: var(--bg-hover); color: var(--ink-secondary); }
 
-/* Custom scrollbars */
+/* React DatePicker & Custom Calendar Glass-Card System Styles */
+.react-datepicker,
+.react-datepicker-wrapper,
+.datepicker-glass-card {
+  font-family: var(--font-sans);
+  background: rgba(17, 17, 19, 0.88);
+  border: 1px solid rgba(229, 229, 231, 0.12);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(74, 222, 128, 0.15);
+  color: var(--ink-primary);
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+}
+
+.dark .react-datepicker,
+.dark .datepicker-glass-card {
+  background: rgba(17, 17, 19, 0.92);
+  border-color: rgba(229, 229, 231, 0.14);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(74, 222, 128, 0.2);
+}
+
+.react-datepicker__header {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(229, 229, 231, 0.12);
+  padding: 12px;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #4ade80;
+}
+
+.react-datepicker__day-name {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(229, 229, 231, 0.6);
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  border-radius: 9999px;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+}
+
+.react-datepicker__day:hover {
+  background-color: rgba(74, 222, 128, 0.15);
+  border-radius: 9999px;
+}
+
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d0d2d6; border-radius: 4px; }

@@ -36,7 +36,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   currentUser
 }) => {
   const [activeTab, setActiveTab] = useState<'docentes' | 'coordinadores' | 'feriados' | 'dbCleanup'>('docentes');
-  const [newDocenteGrado, setNewDocenteGrado] = useState('Lic.');
+  const [newDocenteGrado, setNewDocenteGrado] = useState('LIC.');
   const [newDocenteInput, setNewDocenteInput] = useState('');
   const [newCoordInput, setNewCoordInput] = useState('');
   const [newHolidayInput, setNewHolidayInput] = useState('');
@@ -53,7 +53,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const handleAddDocenteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) return;
-    const formatted = capitalizeName(newDocenteInput.trim());
+    const formatted = newDocenteInput.trim().toUpperCase();
     if (formatted) {
       const fullDocente = newDocenteGrado ? `${newDocenteGrado} ${formatted}` : formatted;
       onAddDocente(fullDocente);
@@ -64,7 +64,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const handleAddCoordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) return;
-    const formatted = capitalizeName(newCoordInput.trim());
+    const formatted = newCoordInput.trim().toUpperCase();
     if (formatted) {
       onAddCoordinador(formatted);
       setNewCoordInput('');
@@ -209,17 +209,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     className="w-24 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-2 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 focus:outline-none focus:border-emerald-600 cursor-pointer font-display"
                     title="Grado Académico"
                   >
-                    {GRADOS_ACADEMICOS.map(g => (
+                    {Array.from(new Set(GRADOS_ACADEMICOS.map(g => g.toUpperCase()))).map(g => (
                       <option key={g} value={g} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">{g}</option>
                     ))}
-                    <option value="" className="bg-white dark:bg-zinc-900 text-zinc-500">(Sin Grado)</option>
+                    <option value="" className="bg-white dark:bg-zinc-900 text-zinc-500">(SIN GRADO)</option>
                   </select>
                   <input
                     type="text"
                     placeholder="Escriba Nombre y Apellido..."
                     value={newDocenteInput}
-                    onChange={e => setNewDocenteInput(capitalizeName(e.target.value))}
-                    className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white dark:focus:bg-zinc-900"
+                    onChange={e => setNewDocenteInput(e.target.value.toUpperCase())}
+                    className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white dark:focus:bg-zinc-900 uppercase"
                   />
                   <button
                     type="submit"
@@ -264,8 +264,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     type="text"
                     placeholder="Escriba Nombre y Apellido..."
                     value={newCoordInput}
-                    onChange={e => setNewCoordInput(capitalizeName(e.target.value))}
-                    className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white dark:focus:bg-zinc-900"
+                    onChange={e => setNewCoordInput(e.target.value.toUpperCase())}
+                    className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white dark:focus:bg-zinc-900 uppercase"
                   />
                   <button
                     type="submit"

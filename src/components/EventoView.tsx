@@ -16,7 +16,8 @@ import {
   Info,
   CheckCircle2,
   Clock,
-  Laptop
+  Laptop,
+  Share2
 } from 'lucide-react';
 import { ProgramacionResultado, SlotAsignacion } from '../types';
 import { CicloCard } from './CicloCard';
@@ -41,6 +42,9 @@ interface EventoViewProps {
   onTecnicoChange: (v: string) => void;
   availableTecnicos: string[];
   onResetFilters: () => void;
+  onGuardarSeguimiento?: () => void;
+  onGenerarPDF?: () => void;
+  onCompartir?: () => void;
 }
 
 export const EventoView: React.FC<EventoViewProps> = ({
@@ -59,7 +63,10 @@ export const EventoView: React.FC<EventoViewProps> = ({
   selectedTecnico,
   onTecnicoChange,
   availableTecnicos,
-  onResetFilters
+  onResetFilters,
+  onGuardarSeguimiento,
+  onGenerarPDF,
+  onCompartir
 }) => {
   if (!resultado) {
     return (
@@ -176,46 +183,16 @@ export const EventoView: React.FC<EventoViewProps> = ({
         </div>
       )}
 
-      {/* ASANA STYLE CLEAN EVENT BANNER */}
-      <div className="bg-[#1e2330] text-white rounded-lg p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-zinc-800">
-        <div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 bg-white/10 px-2.5 py-0.5 rounded border border-white/10 mb-1.5 inline-block">
-            PORTAL ACADÉMICO UNEFCO LA PAZ
-          </span>
-          <h2 className="text-lg md:text-xl font-semibold tracking-tight text-white font-display">
-            Evento: {lugarName}
-          </h2>
-          <p className="text-xs text-zinc-300 mt-0.5 font-body">
-            Sede La Paz • {resultado.asignaciones.length} Cursos Programados • Código: <code className="font-mono bg-black/40 px-1.5 py-0.5 rounded font-medium text-zinc-200">{resultado.idTransaccion}</code>
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleConfirmAndSave}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded border border-emerald-500 flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-            <span>Guardar en Seguimiento</span>
-          </button>
-
-          <button
-            onClick={onGoToProgramar}
-            className="bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-3.5 py-2 rounded border border-white/20 flex items-center gap-2 transition-colors cursor-pointer"
-          >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Editar Parámetros</span>
-          </button>
-        </div>
-      </div>
-
-      {/* INFORMACIÓN DEL EVENTO CARDS */}
-      <div className="space-y-2.5">
+      {/* HEADER BAR ABOVE MAIN CARDS */}
+      <div className="flex items-center justify-between gap-3 pt-1">
         <h3 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-2">
           <Info className="w-4 h-4 text-zinc-500" />
           <span>Información del Evento</span>
         </h3>
+      </div>
 
+      {/* INFORMACIÓN DEL EVENTO CARDS */}
+      <div className="space-y-2.5">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Card 1: Facilitador */}
           <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
@@ -254,7 +231,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
               <Calendar className="w-5 h-5" />
             </div>
             <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
-              Mes / Versión
+              MES DE PROGRAMACIÓN
             </span>
             <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase mt-0.5 capitalize">
               {monthName}
@@ -336,6 +313,45 @@ export const EventoView: React.FC<EventoViewProps> = ({
               />
             );
           })}
+        </div>
+      </div>
+
+      {/* HERRAMIENTAS DE FINALIZACIÓN FOOTER BAR */}
+      <div className="bg-[#111625] dark:bg-[#111625] border border-zinc-800 rounded-xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4 mt-8">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs font-bold text-zinc-100 uppercase tracking-wider font-display">
+            HERRAMIENTAS DE FINALIZACIÓN
+          </span>
+          <span className="text-zinc-600 font-bold hidden sm:inline">|</span>
+          <span className="text-xs text-zinc-400 font-medium">
+            Realiza las siguientes acciones para tu seguimiento a los eventos
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={onGuardarSeguimiento}
+            className="bg-[#009b68] hover:bg-[#00875a] active:bg-[#00734c] text-white font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Guarda tu programación</span>
+          </button>
+
+          <button
+            onClick={onGenerarPDF}
+            className="bg-[#1e2333] hover:bg-[#282f45] active:bg-[#181d2b] text-zinc-200 border border-zinc-700/80 font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+          >
+            <FileText className="w-4 h-4 text-zinc-300" />
+            <span>Genera el PDF de tu programación</span>
+          </button>
+
+          <button
+            onClick={onCompartir}
+            className="bg-[#1e2333] hover:bg-[#282f45] active:bg-[#181d2b] text-zinc-200 border border-zinc-700/80 font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+          >
+            <Share2 className="w-4 h-4 text-zinc-300" />
+            <span>Comparte la programación</span>
+          </button>
         </div>
       </div>
     </div>

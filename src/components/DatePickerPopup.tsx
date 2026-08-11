@@ -128,11 +128,11 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
     if (isSelected) {
       cellClass += "bg-emerald-600 text-white font-extrabold shadow-md ring-2 ring-emerald-300 dark:ring-emerald-800 scale-105";
     } else if (isDisabled) {
-      cellClass += "text-rose-400 dark:text-rose-500 bg-rose-50/60 dark:bg-rose-950/30 line-through cursor-not-allowed opacity-60";
+      cellClass += "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 line-through cursor-not-allowed font-semibold opacity-75";
     } else if (isToday) {
-      cellClass += "border-2 border-emerald-600 dark:border-emerald-400 text-emerald-700 dark:text-emerald-300 font-extrabold bg-emerald-50/60 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900";
+      cellClass += "border-2 border-emerald-600 dark:border-emerald-400 text-emerald-700 dark:text-emerald-300 font-extrabold bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900";
     } else {
-      cellClass += "text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 dark:hover:text-emerald-300";
+      cellClass += "text-zinc-900 dark:text-zinc-100 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300 font-bold";
     }
 
     const titleText = isBeforeMin 
@@ -183,19 +183,19 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
           <div className="absolute inset-0" onClick={() => setIsOpen(false)} />
 
           {/* Modal Container */}
-          <div className="relative z-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 w-84 max-w-full space-y-4">
+          <div className="relative z-10 p-6 w-84 max-w-full space-y-4 rounded-2xl bg-white dark:bg-[#18181a] border border-zinc-200 dark:border-zinc-800 shadow-2xl transition-all text-zinc-900 dark:text-zinc-100">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/80 rounded-lg text-indigo-600 dark:text-indigo-400">
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/80 rounded-lg text-emerald-600 dark:text-emerald-400">
                   <CalendarIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider font-mono">
                     {title}
                   </h3>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
                     {subtitle}
                   </p>
                 </div>
@@ -204,7 +204,7 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 title="Cerrar"
               >
                 <X className="w-5 h-5" />
@@ -212,25 +212,25 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
             </div>
 
             {/* Month / Year Navigator */}
-            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/80 p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs transition-all cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800 hover:shadow-2xs transition-all cursor-pointer"
                 title="Mes Anterior"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
 
-              <div className="flex items-center gap-1.5 font-bold text-sm text-indigo-700 dark:text-indigo-300">
+              <div className="flex items-center gap-1.5 font-bold text-sm text-emerald-700 dark:text-emerald-400">
                 <span>{MESES[viewMonth]}</span>
                 <select
                   value={viewYear}
                   onChange={(e) => setViewYear(Number(e.target.value))}
-                  className="bg-transparent font-bold text-sm cursor-pointer focus:outline-none text-indigo-900 dark:text-indigo-200"
+                  className="bg-transparent font-bold text-sm cursor-pointer focus:outline-none text-emerald-800 dark:text-emerald-300 font-mono"
                 >
                   {[2025, 2026, 2027].map((y) => (
-                    <option key={y} value={y} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                    <option key={y} value={y} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
                       {y}
                     </option>
                   ))}
@@ -240,7 +240,7 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
               <button
                 type="button"
                 onClick={handleNextMonth}
-                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:shadow-2xs transition-all cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800 hover:shadow-2xs transition-all cursor-pointer"
                 title="Mes Siguiente"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -252,7 +252,7 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
               {DIAS_SEMANA.map((d, idx) => (
                 <span
                   key={idx}
-                  className={`text-[11px] font-bold py-1 ${d.isRed ? 'text-rose-500 dark:text-rose-400' : 'text-slate-400 dark:text-slate-500'}`}
+                  className={`text-[11px] font-extrabold font-mono py-1 ${d.isRed ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-600 dark:text-zinc-400'}`}
                   title={d.full}
                 >
                   {d.short}
@@ -266,10 +266,10 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
             </div>
 
             {/* Footer Legend & Actions */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+            <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
               <div className="flex items-center gap-3 font-semibold">
                 <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block" /> Selección
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" /> Selección
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> No Hábil
@@ -283,7 +283,7 @@ export const DatePickerPopup: React.FC<DatePickerPopupProps> = ({
                   setViewMonth(now.getMonth());
                   setViewYear(now.getFullYear());
                 }}
-                className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Ir a hoy</span>

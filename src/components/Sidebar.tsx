@@ -90,6 +90,11 @@ interface SidebarProps {
 }
 
 export const GRADOS_ACADEMICOS = [
+  'LIC.',
+  'M.SC.',
+  'PH.D.',
+  'ING.',
+  'PROF.',
   'Lic.',
   'M.Sc.',
   'Ph.D.',
@@ -98,23 +103,23 @@ export const GRADOS_ACADEMICOS = [
 ];
 
 export function parseDegreeAndName(fullName: string) {
-  if (!fullName) return { grado: 'Lic.', nombre: '' };
-  const trimmed = fullName.trim();
+  if (!fullName) return { grado: 'LIC.', nombre: '' };
+  
   for (const degree of GRADOS_ACADEMICOS) {
-    if (trimmed.toLowerCase().startsWith(degree.toLowerCase() + ' ')) {
+    if (fullName.toLowerCase().startsWith(degree.toLowerCase() + ' ')) {
       return {
-        grado: degree,
-        nombre: trimmed.slice(degree.length).trim()
+        grado: degree.toUpperCase(),
+        nombre: fullName.slice(degree.length + 1).toUpperCase()
       };
     }
-    if (trimmed.toLowerCase() === degree.toLowerCase()) {
+    if (fullName.trim().toLowerCase() === degree.toLowerCase()) {
       return {
-        grado: degree,
+        grado: degree.toUpperCase(),
         nombre: ''
       };
     }
   }
-  return { grado: '', nombre: trimmed };
+  return { grado: '', nombre: fullName.toUpperCase() };
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -175,13 +180,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleGradoSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newGrado = e.target.value;
-    const combined = newGrado ? `${newGrado} ${currentNombre}`.trim() : currentNombre;
+    const combined = newGrado ? `${newGrado} ${currentNombre}` : currentNombre;
     onChangeFacilitador(combined);
   };
 
   const handleNombreInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newNombre = capitalizeName(e.target.value);
-    const combined = currentGrado ? `${currentGrado} ${newNombre}`.trimStart() : newNombre;
+    const rawValue = e.target.value.toUpperCase();
+    const combined = currentGrado ? `${currentGrado} ${rawValue}` : rawValue;
     onChangeFacilitador(combined);
   };
 
@@ -283,7 +288,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
               </button>
 
-              {/* Paso 3: Ver Cursos Programados */}
+              {/* Paso 3: Ciclos Programados */}
               <button
                 onClick={() => onSelectView('eventos')}
                 className={`w-9 h-9 rounded flex items-center justify-center transition-colors cursor-pointer relative ${
@@ -291,7 +296,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     ? 'bg-emerald-600 text-white font-bold shadow-xs'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252628]'
                 }`}
-                title="3. Ver Cursos Programados"
+                title="3. Ciclos Programados"
               >
                 <BookOpen className="w-4 h-4" />
               </button>
@@ -369,7 +374,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   )}
                 </button>
 
-                {/* Paso 3: Ver Cursos Programados */}
+                {/* Paso 3: Ciclos Programados */}
                 <button
                   onClick={() => onSelectView('eventos')}
                   className={`w-full px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between transition-all cursor-pointer ${
@@ -383,7 +388,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       3
                     </span>
                     <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="truncate">Ver Cursos Programados</span>
+                    <span className="truncate">Ciclos Programados</span>
                   </div>
                   {hasResult && (
                     <span className="text-xs font-bold uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded font-mono">
@@ -392,7 +397,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   )}
                 </button>
 
-                {/* Paso 4: Dashboard & Métricas */}
+                {/* Paso 4: Dashboard */}
                 <button
                   onClick={() => onSelectView('dashboard')}
                   className={`w-full px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between transition-all cursor-pointer ${
@@ -406,11 +411,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       4
                     </span>
                     <LayoutDashboard className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="truncate">Dashboard & Métricas</span>
+                    <span className="truncate">Dashboard</span>
                   </div>
                 </button>
 
-                {/* Paso 5: Historial de Calendarios Académicos */}
+                {/* Paso 5: Historial */}
                 {onOpenHistory && (
                   <button
                     onClick={onOpenHistory}
@@ -420,36 +425,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       5
                     </span>
                     <History className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="truncate">Historial de Calendarios</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Herramientas de Exportación */}
-              <div className="pt-3 border-t border-zinc-200 dark:border-[#2e2f33] mt-3">
-                <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-2.5 pb-1.5 font-display">
-                  Herramientas
-                </div>
-
-                {onOpenShare && (
-                  <button
-                    onClick={onOpenShare}
-                    disabled={pdfDisabled}
-                    className="w-full px-3 py-2 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] disabled:opacity-30 flex items-center gap-2.5 transition-colors cursor-pointer my-0.5"
-                  >
-                    <Send className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
-                    <span>Notificar & Compartir</span>
-                  </button>
-                )}
-
-                {onGeneratePDF && (
-                  <button
-                    onClick={onGeneratePDF}
-                    disabled={pdfDisabled}
-                    className="w-full px-3 py-2 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#252628] disabled:opacity-30 flex items-center gap-2.5 transition-colors cursor-pointer my-0.5"
-                  >
-                    <FileDown className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
-                    <span>Exportar PDF</span>
+                    <span className="truncate">Historial</span>
                   </button>
                 )}
               </div>

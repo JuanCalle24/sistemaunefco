@@ -30,7 +30,7 @@ import {
 } from './types';
 import { calculateSchedulerAuto, calculateSchedulerManual } from './utils/scheduler';
 import { generatePDFDocument } from './utils/pdfGenerator';
-import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, FileSpreadsheet, FileText, CheckCircle2, LayoutDashboard, CalendarDays, Send, Mail, Calendar, Download, MessageSquare, RotateCcw, ShieldAlert, Sliders } from 'lucide-react';
 
 import { getLoggedInUser, clearLoggedInUser, saveLoggedInUser } from './utils/authService';
 import { saveScheduleToFirestore, subscribeToSchedules, deleteScheduleFromFirestore, clearAllSchedulesFromFirestore } from './services/scheduleService';
@@ -218,7 +218,12 @@ export default function App() {
     }
   });
 
-  // Mode: automatico vs manual
+  // User-filtered history so each technician only sees their own programming
+  const userHistory = useMemo(() => {
+    if (!currentUser?.displayName) return history;
+    const currentName = currentUser.displayName.trim().toLowerCase();
+    return history.filter(h => !h.tecnico || h.tecnico.trim().toLowerCase() === currentName);
+  }, [history, currentUser]);
   const [modo, setModo] = useState<'automatico' | 'manual'>('automatico');
 
   // Personal
@@ -910,7 +915,7 @@ export default function App() {
               savedDocentes={savedDocentes}
               ci={ci}
               onChangeCi={setCi}
-              history={history}
+              history={userHistory}
               tecnico={tecnico}
               onChangeTecnico={setTecnico}
               savedCoordinadores={savedCoordinadores}
@@ -954,6 +959,9 @@ export default function App() {
               onTecnicoChange={setSelectedTecnico}
               availableTecnicos={availableTecnicos}
               onResetFilters={handleResetFilters}
+              onGuardarSeguimiento={() => programacionResult && saveToHistory(programacionResult)}
+              onGenerarPDF={handleGeneratePDF}
+              onCompartir={() => setIsShareOpen(true)}
             />
           )}
 
@@ -964,7 +972,7 @@ export default function App() {
                 isDarkMode={isDarkMode} 
                 activeRole={activeRole}
                 currentUser={currentUser}
-                history={history}
+                history={userHistory}
                 correlativoRecords={correlativoRecords}
                 onGoToProgramar={(nombre, ciNum) => {
                   if (nombre) setFacilitador(nombre);
@@ -980,7 +988,7 @@ export default function App() {
               currentUser={currentUser}
               activeRole={activeRole}
               tecnicoName={tecnico}
-              schedulesHistory={history}
+              schedulesHistory={userHistory}
               onPreloadFacilitadorForSchedule={(nombre, cNum, cComp) => {
                 setFacilitador(nombre);
                 setCi(cNum);
@@ -1031,7 +1039,7 @@ export default function App() {
       <HistoryModal
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
-        history={history}
+        history={userHistory}
         onSelectHistoryItem={(item) => {
           setProgramacionResult(item);
           setSelectedView('eventos');

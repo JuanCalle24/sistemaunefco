@@ -61,22 +61,9 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               <div>
                 <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider flex items-center gap-2 font-display">
                   <span>Historial de Calendarios Académicos</span>
-                  {isAdmin ? (
-                    <span className="text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded-full font-extrabold flex items-center gap-1 font-display">
-                      <ShieldCheck className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                      ADMIN
-                    </span>
-                  ) : (
-                    <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded-full font-extrabold flex items-center gap-1 font-display">
-                      <Lock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                      TÉCNICO
-                    </span>
-                  )}
                 </h2>
                 <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-tight">
-                  {isAdmin 
-                    ? `Vista global de administración (${history.length} registros)`
-                    : `Control de registros del técnico ${currentUser?.displayName || ''}`}
+                  Control de tus registros de programación académica
                 </p>
               </div>
             </div>
@@ -136,15 +123,6 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800 font-mono">
                           ID: {item.idTransaccion}
                         </span>
-                        {item.rolOperador && (
-                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border uppercase tracking-wide font-display ${
-                            item.rolOperador === 'admin'
-                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                              : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                          }`}>
-                            Rol: {item.rolOperador === 'admin' ? 'ADMIN' : 'TÉCNICO'}
-                          </span>
-                        )}
                         {item.estado === 'ANULADO' && (
                           <span className="text-[9px] bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 font-bold px-2 py-0.5 rounded-lg border border-red-200 dark:border-red-800 uppercase flex items-center gap-1 font-display">
                             <Ban className="w-3 h-3 text-red-600" />
@@ -154,8 +132,6 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                        <span>Técnico: <strong className="text-zinc-800 dark:text-zinc-200">{item.tecnico}</strong></span>
-                        <span>•</span>
                         <span>Asignaciones: <strong className="text-zinc-800 dark:text-zinc-200">{item.slots.length}</strong></span>
                         <span>•</span>
                         <span>Inicio: <strong className="text-zinc-800 dark:text-zinc-200">{formatDateVisual(item.fechaInicioContrato, false)}</strong></span>

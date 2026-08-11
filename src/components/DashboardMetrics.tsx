@@ -209,38 +209,26 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
 
   return (
     <div className="space-y-5">
-      {/* Active Role Mode Indicator Banner */}
+      {/* Active Mode Indicator Banner */}
       <div className="glass-card p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800">
-            {isAdminMode ? <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+            <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider font-display">
-                {isAdminMode ? 'Modo Administrador: Monitoreo Institucional UNEFCO' : 'Modo Técnico de Seguimiento: Gestión Académica'}
+                Gestión Académica de Programaciones
               </h2>
               <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 font-mono font-bold">
-                {isAdminMode ? 'Auditoría' : 'Operativo'}
+                Mis Programaciones
               </span>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              {isAdminMode
-                ? `Monitoreo consolidado de la Sede UNEFCO. Registros académicos: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
-                : `Supervisión de cronogramas y ciclos formativos activos bajo la gestión de ${currentUser?.displayName || (resultado ? resultado.tecnico : 'Técnico de Seguimiento')}.`}
+              Supervisión y seguimiento de tus cronogramas y ciclos formativos activos.
             </p>
           </div>
         </div>
-
-        {isAdminMode && (
-          <div className="flex items-center gap-2 text-xs font-mono bg-zinc-50 dark:bg-[#1e1f21] px-3 py-1.5 rounded border border-zinc-200 dark:border-[#333438]">
-            <span className="text-zinc-500">Cronogramas Activos:</span>
-            <span className="text-zinc-900 dark:text-zinc-100 font-semibold">{activeGlobalRecords} Registrados</span>
-            {anuladosGlobalRecords > 0 && (
-              <span className="text-red-600 dark:text-red-400">({anuladosGlobalRecords} Anulados)</span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Overview Stat Cards */}
@@ -433,10 +421,6 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                     <div className="flex items-center gap-2 text-[11px] text-zinc-500">
                       <span className="font-mono">
                         CI: {item.ciCompleta}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        Reg: {item.usuarioGenerador}
                       </span>
                     </div>
                   </div>

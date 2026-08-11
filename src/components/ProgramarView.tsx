@@ -119,13 +119,13 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
 
   const handleGradoSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newGrado = e.target.value;
-    const combined = newGrado ? `${newGrado} ${currentNombre}`.trim() : currentNombre;
+    const combined = newGrado ? `${newGrado} ${currentNombre}` : currentNombre;
     onChangeFacilitador(combined);
   };
 
   const handleNombreInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newNombre = capitalizeName(e.target.value);
-    const combined = currentGrado ? `${currentGrado} ${newNombre}`.trimStart() : newNombre;
+    const rawValue = e.target.value.toUpperCase();
+    const combined = currentGrado ? `${currentGrado} ${rawValue}` : rawValue;
     onChangeFacilitador(combined);
   };
 
@@ -183,10 +183,10 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 onChange={handleGradoSelectChange}
                 className="w-28 shrink-0 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 dark:hover:border-zinc-500 rounded-lg px-2.5 py-2.5 text-xs font-bold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
               >
-                {GRADOS_ACADEMICOS.map(g => (
+                {Array.from(new Set(GRADOS_ACADEMICOS.map(g => g.toUpperCase()))).map(g => (
                   <option key={g} value={g}>{g}</option>
                 ))}
-                <option value="">(Sin Grado)</option>
+                <option value="">(SIN GRADO)</option>
               </select>
               <input
                 type="text"
