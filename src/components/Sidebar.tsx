@@ -199,14 +199,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-3 border-b border-zinc-200 dark:border-[#2e2f33] bg-zinc-50/50 dark:bg-[#252628] flex items-center justify-between">
           {!isCollapsed ? (
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-8 h-8 rounded bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
                 {currentUser?.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U'}
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate flex items-center gap-1">
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider truncate flex items-center gap-1">
                   <span>UNEFCO La Paz</span>
                   {isAdmin && (
-                    <span className="text-[9px] bg-zinc-200 dark:bg-[#333438] text-zinc-700 dark:text-zinc-300 px-1 py-0.2 rounded font-mono">
+                    <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1 py-0.2 rounded font-mono font-bold">
                       ADMIN
                     </span>
                   )}
@@ -217,7 +217,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
           ) : (
-            <div className="w-8 h-8 rounded bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center mx-auto">
+            <div className="w-8 h-8 rounded bg-emerald-600 text-white font-bold text-xs flex items-center justify-center mx-auto shadow-xs">
               {currentUser?.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U'}
             </div>
           )}

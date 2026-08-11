@@ -47,15 +47,15 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="h-12 bg-white dark:bg-[#1e1f21] border-b border-zinc-200 dark:border-[#2e2f33] flex items-center justify-between px-4 shrink-0 sticky top-0 z-40 transition-colors">
       {/* Brand & Subtitle */}
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 rounded font-bold text-xs flex items-center justify-center shrink-0">
+        <div className="w-7 h-7 bg-emerald-600 text-white rounded font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
           U
         </div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-            UNEFCO <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">| La Paz</span>
+          <h1 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 uppercase tracking-wide">
+            UNEFCO <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">| La Paz</span>
           </h1>
-          <span className="hidden md:inline text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
-            Sistema Académico 2026
+          <span className="hidden md:inline-block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+            SISTEMA DE GESTIÓN ACADÉMICA
           </span>
         </div>
       </div>
