@@ -28,54 +28,107 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box">
-        <h1>UNEFCO La Paz</h1>
-        <p className="login-subtitle">Sistema de Gestión Académica</p>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      background: '#1a1a2e',
+      padding: '20px'
+    }}>
+      <div style={{
+        background: 'white',
+        padding: '40px',
+        borderRadius: '12px',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+        width: '100%',
+        maxWidth: '400px'
+      }}>
+        <h1 style={{ color: '#1a1a2e', fontSize: '28px', marginBottom: '5px', textAlign: 'center' }}>
+          UNEFCO La Paz
+        </h1>
+        <p style={{ color: '#666', textAlign: 'center', marginBottom: '30px', fontSize: '14px' }}>
+          Sistema de Gestión Académica
+        </p>
         
         {error && (
-          <div className="login-error">
+          <div style={{
+            background: '#fee',
+            color: '#c00',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+            textAlign: 'center'
+          }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="username">Usuario</label>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#333', fontWeight: '500', fontSize: '14px' }}>
+              Usuario
+            </label>
             <input
-              id="username"
               type="text"
               placeholder="Ingresa tu usuario"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              autoComplete="username"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#333', fontWeight: '500', fontSize: '14px' }}>
+              Contraseña
+            </label>
             <input
-              id="password"
               type="password"
               placeholder="Ingresa tu contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
             />
           </div>
 
           <button 
             type="submit" 
-            className="login-button"
             disabled={loading}
+            style={{
+              width: '100%',
+              padding: '14px',
+              background: '#0f3460',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              opacity: loading ? 0.6 : 1
+            }}
           >
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
 
-        <div className="login-footer">
+        <div style={{ marginTop: '20px', textAlign: 'center', color: '#999', fontSize: '12px' }}>
           <p>Sistema UNEFCO La Paz v2.0</p>
         </div>
       </div>
