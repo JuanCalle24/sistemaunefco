@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { authService } from './services/authService';
 import { User } from './types';
-import LoginScreen from './components/LoginScreen';
-import ProgramarView from './components/ProgramarView';
-import CorrelativosModule from './components/CorrelativosModule';
-import HistoryModal from './components/HistoryModal';
+import { LoginScreen } from './components/LoginScreen';
+import { ProgramarView } from './components/ProgramarView';
+import { CorrelativosModule } from './components/CorrelativosModule';
+import { HistoryModal } from './components/HistoryModal';
 
 // Estilos inline para la app
 const styles = {
