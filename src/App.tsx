@@ -4,6 +4,7 @@ import { User } from './types';
 import LoginScreen from './components/LoginScreen';
 import { ProgramarView } from './components/ProgramarView';
 import { DashboardMetrics } from './components/DashboardMetrics';
+import { CorrelativosModule } from './components/CorrelativosModule';
 
 // Estilos completos
 const styles = {
@@ -106,7 +107,7 @@ const styles = {
   },
 };
 
-type TabType = 'dashboard' | 'programar';
+type TabType = 'dashboard' | 'programar' | 'correlativos';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -150,6 +151,8 @@ function App() {
         return <DashboardMetrics user={user} isViewer={isViewer} />;
       case 'programar':
         return <ProgramarView user={user} isViewer={isViewer} />;
+      case 'correlativos':
+        return <CorrelativosModule user={user} isViewer={isViewer} />;
       default:
         return <DashboardMetrics user={user} isViewer={isViewer} />;
     }
@@ -210,6 +213,15 @@ function App() {
               onClick={() => setActiveTab('programar')}
             >
               📅 Programar
+            </button>
+            <button
+              style={{
+                ...styles.tabButton,
+                ...(activeTab === 'correlativos' ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => setActiveTab('correlativos')}
+            >
+              📄 Correlativos
             </button>
           </div>
 
