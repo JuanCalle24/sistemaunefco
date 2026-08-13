@@ -1,152 +1,357 @@
-import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import React from 'react';
+import { motion } from 'motion/react';
+import { 
+  User, 
+  MapPin, 
+  Calendar, 
+  BookOpen, 
+  Plus, 
+  Award, 
+  Edit3, 
+  Users, 
+  Star, 
+  FileText,
+  Sparkles,
+  Sliders,
+  Info,
+  CheckCircle2,
+  Clock,
+  Laptop,
+  Share2
+} from 'lucide-react';
+import { ProgramacionResultado, SlotAsignacion } from '../types';
+import { CicloCard } from './CicloCard';
+import { Timeline } from './Timeline';
+import { ScheduleFilterBar, StatusFilterType } from './ScheduleFilterBar';
+import { AlertsBanner } from './AlertsBanner';
 
-export const EventoView: React.FC<{ 
-  evento: any; 
-  user: any; 
-  isViewer: boolean;
-  onClose: () => void;
-  onUpdate: () => void;
-}> = ({ evento, user, isViewer, onClose, onUpdate }) => {
-  const [loading, setLoading] = useState(false);
-  const [fechas, setFechas] = useState({
-    inicio: evento?.inicio || '',
-    fin: evento?.fin || '',
-    planificacion: evento?.planificacion || '',
-    informe_final: evento?.informe_final || '',
-    sesion2: evento?.sesion2 || '',
-    sesion3: evento?.sesion3 || '',
-  });
+interface EventoViewProps {
+  resultado: ProgramacionResultado | null;
+  onGoToProgramar: () => void;
+  filteredSlots: SlotAsignacion[];
+  modo: 'automatico' | 'manual';
+  onManualDateChange: (slotId: string, cursoIdx: number, newDateStr: string) => void;
+  manualDatesMap: Record<string, string>;
+  activeAlerts: any[];
+  filterCounts: any;
+  searchTerm: string;
+  onSearchChange: (v: string) => void;
+  statusFilter: StatusFilterType;
+  onStatusFilterChange: (s: StatusFilterType) => void;
+  selectedTecnico: string;
+  onTecnicoChange: (v: string) => void;
+  availableTecnicos: string[];
+  onResetFilters: () => void;
+  onGuardarSeguimiento?: () => void;
+  onGenerarPDF?: () => void;
+  onCompartir?: () => void;
+}
 
-  const handleChange = (campo: string, valor: string) => {
-    setFechas({ ...fechas, [campo]: valor });
-  };
+export const EventoView: React.FC<EventoViewProps> = ({
+  resultado,
+  onGoToProgramar,
+  filteredSlots,
+  modo,
+  onManualDateChange,
+  manualDatesMap,
+  activeAlerts,
+  filterCounts,
+  searchTerm,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  selectedTecnico,
+  onTecnicoChange,
+  availableTecnicos,
+  onResetFilters,
+  onGuardarSeguimiento,
+  onGenerarPDF,
+  onCompartir
+}) => {
+  if (!resultado) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-8 bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg text-center">
+        <div className="w-12 h-12 bg-zinc-100 dark:bg-[#2d2e32] border border-zinc-200 dark:border-[#3a3b40] text-zinc-600 dark:text-zinc-300 flex items-center justify-center rounded-lg mb-3">
+          <BookOpen className="w-6 h-6" />
+        </div>
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider mb-1.5">
+          No hay Cursos Programados Activos
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md leading-relaxed mb-5">
+          Seleccione la opción "Generar Cronograma" en el menú lateral de opciones para ingresar los parámetros del docente y calcular los itinerarios formativos.
+        </p>
+        <button
+          onClick={onGoToProgramar}
+          className="bg-[#4573d2] hover:bg-[#3866c6] text-white px-4 py-2 rounded text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Configurar Parámetros</span>
+        </button>
+      </div>
+    );
+  }
 
-  const handleSave = async () => {
-    if (isViewer) {
-      alert('👁️ Modo solo lectura: No puedes editar');
+  // Primary slot details
+  const primarySlot = resultado.slots[0];
+  const lugarName = primarySlot ? primarySlot.lugar : 'SEDE LA PAZ';
+  const rawModalidad = primarySlot?.modalidad;
+  const modalidadStr = (!rawModalidad || rawModalidad === 'Presencial') ? 'Semipresencial' : rawModalidad;
+  
+  // Format month name
+  const monthName = resultado.fechaInicioContrato
+    ? new Date(resultado.fechaInicioContrato).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    : 'Julio 2026';
+
+  const [showSavedToast, setShowSavedToast] = React.useState(false);
+
+  const handleConfirmAndSave = () => {
+    if (resultado && resultado.daysUsed > 100) {
+      alert(`⚠️ NO SE PUEDE GUARDAR: La programación abarca ${resultado.daysUsed} días, excediendo el límite máximo de 100 días del contrato UNEFCO por ${resultado.daysUsed - 100} día(s). Por favor reajuste las fechas de inicio de los cursos.`);
       return;
     }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('schedules')
-        .update({
-          inicio: fechas.inicio,
-          fin: fechas.fin,
-          planificacion: fechas.planificacion,
-          informe_final: fechas.informe_final,
-          sesion2: fechas.sesion2,
-          sesion3: fechas.sesion3,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id_transaccion', evento.id_transaccion);
-
-      if (error) throw error;
-      alert('✅ Evento actualizado correctamente');
-      onUpdate();
-      onClose();
-    } catch (error: any) {
-      alert(`❌ Error: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
+    setShowSavedToast(true);
+    setTimeout(() => {
+      setShowSavedToast(false);
+    }, 4000);
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000,
-    }}>
-      <div style={{
-        background: 'white',
-        padding: '24px',
-        borderRadius: '12px',
-        maxWidth: '500px',
-        width: '90%',
-        maxHeight: '90vh',
-        overflow: 'auto',
-      }}>
-        <h3>📅 {evento?.ciclo_nombre || 'Evento'}</h3>
-        <p><strong>Lugar:</strong> {evento?.lugar}</p>
-        <p><strong>Modalidad:</strong> {evento?.modalidad}</p>
-        <p><strong>Facilitador:</strong> {evento?.facilitador}</p>
+    <div className="space-y-5">
+      {/* Toast Notification when saving schedule */}
+      {showSavedToast && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center justify-between gap-3 text-xs font-bold"
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
+            <span>CRONOGRAMA GUARDADO Y CONFIRMADO: Registrado correctamente en el Sistema de Seguimiento y Dashboard Académico.</span>
+          </div>
+          <button
+            onClick={() => setShowSavedToast(false)}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white px-2 py-1 rounded text-[10px] font-mono cursor-pointer"
+          >
+            CERRAR
+          </button>
+        </motion.div>
+      )}
 
-        <hr style={{ margin: '16px 0' }} />
+      {/* OVERFLOW 100 DAYS BLOCKING CRITICAL ALERT BANNER */}
+      {resultado && resultado.daysUsed > 100 && (
+        <div className="bg-red-50 dark:bg-red-950/60 border-2 border-red-500 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-red-900 dark:text-red-100 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 font-bold">
+              <Clock className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-300">
+                🚨 Error de Límite de Contrato ({resultado.daysUsed} / 100 Días)
+              </h4>
+              <p className="text-xs font-medium mt-0.5">
+                La programación manual abarca <strong>{resultado.daysUsed} días calendario</strong>, excediendo por <strong className="text-red-700 dark:text-red-300">+{resultado.daysUsed - 100} día(s)</strong> el límite máximo de 100 días de contrato UNEFCO. Debe reajustar las fechas para poder registrar un cronograma válido.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onGoToProgramar}
+            className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded shadow-sm flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+          >
+            <Sliders className="w-4 h-4" />
+            <span>Ajustar Fechas en Programador</span>
+          </button>
+        </div>
+      )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <label>
-            Inicio:
-            <input
-              type="datetime-local"
-              value={fechas.inicio || ''}
-              onChange={(e) => handleChange('inicio', e.target.value)}
-              disabled={isViewer}
-              style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-            />
-          </label>
-          <label>
-            Fin:
-            <input
-              type="datetime-local"
-              value={fechas.fin || ''}
-              onChange={(e) => handleChange('fin', e.target.value)}
-              disabled={isViewer}
-              style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-            />
-          </label>
-          <label>
-            Planificación:
-            <input
-              type="datetime-local"
-              value={fechas.planificacion || ''}
-              onChange={(e) => handleChange('planificacion', e.target.value)}
-              disabled={isViewer}
-              style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-            />
-          </label>
+      {/* Manual Mode Active Notice */}
+      {modo === 'manual' && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 p-3.5 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
+            <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="text-xs font-semibold">
+              Modo Programación Manual Activo — Seleccione la fecha de inicio para cada curso individualmente.
+            </span>
+          </div>
+          <button
+            onClick={handleConfirmAndSave}
+            className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3.5 py-1.5 rounded shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Confirmar Programación Manual</span>
+          </button>
+        </div>
+      )}
+
+      {/* HEADER BAR ABOVE MAIN CARDS */}
+      <div className="flex items-center justify-between gap-3 pt-1">
+        <h3 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+          <Info className="w-4 h-4 text-zinc-500" />
+          <span>Información del Evento</span>
+        </h3>
+      </div>
+
+      {/* INFORMACIÓN DEL EVENTO CARDS */}
+      <div className="space-y-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Card 1: Facilitador */}
+          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
+            <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
+              <User className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
+              Facilitador
+            </span>
+            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase mt-0.5">
+              {resultado.facilitador || 'Lic. Por Asignar'}
+            </span>
+            {resultado.ci && (
+              <span className="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 mt-1 bg-zinc-100 dark:bg-[#2d2e32] px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40]">
+                CI: {resultado.ci}
+              </span>
+            )}
+          </div>
+
+          {/* Card 2: Distrito / Lugar */}
+          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
+            <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
+              Distrito / Sede
+            </span>
+            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase mt-0.5">
+              {lugarName}
+            </span>
+          </div>
+
+          {/* Card 3: Mes / Versión */}
+          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
+            <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
+              MES DE PROGRAMACIÓN
+            </span>
+            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase mt-0.5 capitalize">
+              {monthName}
+            </span>
+          </div>
+
+          {/* Card 4: Modalidad */}
+          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
+            <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
+              <Laptop className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
+              Modalidad
+            </span>
+            <span className="text-[10px] font-mono text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-[#2d2e32] px-2.5 py-0.5 rounded uppercase mt-1 border border-zinc-200 dark:border-[#3a3b40]">
+              {modalidadStr.toUpperCase()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Critical Alerts Banner */}
+      <AlertsBanner
+        alerts={activeAlerts}
+        onSelectAlertFilter={() => onStatusFilterChange('alertas')}
+        totalEnCursoCount={filterCounts.en_curso}
+        totalProximosCount={filterCounts.proximos}
+      />
+
+      {/* Visual Timeline Track */}
+      <Timeline
+        slots={resultado.slots}
+        asignaciones={resultado.asignaciones}
+        fechaInicioContrato={resultado.fechaInicioContrato}
+        daysUsed={resultado.daysUsed}
+      />
+
+      {/* Search and Semaforización Quick Filter Bar */}
+      <ScheduleFilterBar
+        searchTerm={searchTerm}
+        onSearchChange={onSearchChange}
+        statusFilter={statusFilter}
+        onStatusFilterChange={onStatusFilterChange}
+        selectedTecnico={selectedTecnico}
+        onTecnicoChange={onTecnicoChange}
+        availableTecnicos={availableTecnicos}
+        counts={filterCounts}
+        totalCount={resultado.slots.length}
+        filteredCount={filteredSlots.length}
+        onResetFilters={onResetFilters}
+      />
+
+      {/* CURSOS DEL EVENTO SECTION */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2 font-display">
+            <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>Cursos del Evento</span>
+          </h3>
+          <span className="text-xs font-bold bg-cyan-600 text-white px-3 py-1 rounded-xl shadow-xs">
+            {resultado.asignaciones.length} cursos registrados
+          </span>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+        {/* Cycle Cards */}
+        <div className="space-y-4">
+          {filteredSlots.map((slot, idx) => {
+            const cursosCiclo = resultado.asignaciones.filter(a => a.slotId === slot.id);
+
+            return (
+              <CicloCard
+                key={slot.id}
+                slot={slot}
+                index={idx}
+                cursos={cursosCiclo}
+                modo={modo}
+                onManualDateChange={onManualDateChange}
+                manualDates={manualDatesMap}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* HERRAMIENTAS DE FINALIZACIÓN FOOTER BAR */}
+      <div className="bg-[#111625] dark:bg-[#111625] border border-zinc-800 rounded-xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4 mt-8">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs font-bold text-zinc-100 uppercase tracking-wider font-display">
+            HERRAMIENTAS DE FINALIZACIÓN
+          </span>
+          <span className="text-zinc-600 font-bold hidden sm:inline">|</span>
+          <span className="text-xs text-zinc-400 font-medium">
+            Realiza las siguientes acciones para tu seguimiento a los eventos
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={onClose}
-            style={{
-              padding: '10px 20px',
-              background: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
+            onClick={onGuardarSeguimiento}
+            className="bg-[#009b68] hover:bg-[#00875a] active:bg-[#00734c] text-white font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
           >
-            Cerrar
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Guarda tu programación</span>
           </button>
-          {!isViewer && (
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              style={{
-                padding: '10px 20px',
-                background: '#0f3460',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.6 : 1,
-              }}
-            >
-              {loading ? 'Guardando...' : '💾 Guardar'}
-            </button>
-          )}
+
+          <button
+            onClick={onGenerarPDF}
+            className="bg-[#1e2333] hover:bg-[#282f45] active:bg-[#181d2b] text-zinc-200 border border-zinc-700/80 font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+          >
+            <FileText className="w-4 h-4 text-zinc-300" />
+            <span>Genera el PDF de tu programación</span>
+          </button>
+
+          <button
+            onClick={onCompartir}
+            className="bg-[#1e2333] hover:bg-[#282f45] active:bg-[#181d2b] text-zinc-200 border border-zinc-700/80 font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+          >
+            <Share2 className="w-4 h-4 text-zinc-300" />
+            <span>Comparte la programación</span>
+          </button>
         </div>
       </div>
     </div>

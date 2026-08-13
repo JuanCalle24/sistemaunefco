@@ -1,234 +1,150 @@
-import React, { useState } from 'react';
-import { authService } from '../services/authService';
-import { User } from '../types';
+import React, { useState, useEffect } from 'react';
+import { UserProfile } from '../types';
+import { 
+  authenticateUser, 
+  seedDefaultTeamToFirestore 
+} from '../utils/authService';
+import { 
+  Lock, 
+  User, 
+  Eye, 
+  EyeOff, 
+  AlertCircle, 
+  UserCheck
+} from 'lucide-react';
 
 interface LoginScreenProps {
-  onLogin: (user: User) => void;
+  onLoginSuccess: (user: UserProfile) => void;
+  isDarkMode: boolean;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDarkMode }) => {
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    seedDefaultTeamToFirestore();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setError(null);
+    setInfoMessage(null);
 
+    if (!identifier || !password) {
+      setError('Por favor ingrese su usuario y su contraseña asignada.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const user = await authService.login(username, password);
-      onLogin(user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de autenticación');
+      const userProfile = await authenticateUser(identifier, password);
+      setInfoMessage(`¡Bienvenido/a, ${userProfile.displayName}!`);
+      setTimeout(() => {
+        onLoginSuccess(userProfile);
+      }, 300);
+    } catch (err: any) {
+      setError(err.message || 'Error al validar credenciales.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)',
-      padding: '20px',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-    }}>
-      <div style={{
-        background: 'rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderRadius: '24px',
-        padding: '48px 40px',
-        width: '100%',
-        maxWidth: '420px',
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-      }}>
-        {/* Logo / Icono */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '72px',
-            height: '72px',
-            background: 'linear-gradient(135deg, #667eea, #764ba2)',
-            borderRadius: '18px',
-            margin: '0 auto 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            boxShadow: '0 8px 24px rgba(102, 126, 234, 0.4)',
-          }}>
-            🎓
+    <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors ${
+      isDarkMode ? 'dark bg-[#1e1f21] text-zinc-100' : 'bg-[#f8f9fa] text-zinc-900'
+    }`}>
+      <div className="w-full max-w-md bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg shadow-xs overflow-hidden">
+        
+        {/* Header Title */}
+        <div className="p-6 pb-2 text-left">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 tracking-wider uppercase">
+              UNEFCO La Paz
+            </span>
+            <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-medium">
+              Gestión Académica
+            </span>
           </div>
-          <h1 style={{
-            color: 'white',
-            fontSize: '28px',
-            fontWeight: '700',
-            margin: '0 0 4px',
-            letterSpacing: '-0.5px',
-          }}>
-            UNEFCO La Paz
+          <h1 className="text-xl font-semibold text-zinc-900 dark:text-white tracking-tight">
+            Iniciar Sesión
           </h1>
-          <p style={{
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: '14px',
-            margin: 0,
-          }}>
-            Sistema de Gestión Académica
-          </p>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div style={{
-            background: 'rgba(255, 59, 48, 0.15)',
-            border: '1px solid rgba(255, 59, 48, 0.3)',
-            color: '#ff6b6b',
-            padding: '12px 16px',
-            borderRadius: '12px',
-            marginBottom: '24px',
-            fontSize: '14px',
-            textAlign: 'center',
-            backdropFilter: 'blur(4px)',
-          }}>
-            ⚠️ {error}
-          </div>
-        )}
+        <div className="p-6 pt-3">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '18px' }}>
-            <label style={{
-              display: 'block',
-              color: 'rgba(255,255,255,0.8)',
-              fontSize: '13px',
-              fontWeight: '500',
-              marginBottom: '6px',
-            }}>
-              Usuario
-            </label>
-            <input
-              type="text"
-              placeholder="Ingresa tu usuario"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '14px 16px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: '12px',
-                fontSize: '15px',
-                color: 'white',
-                outline: 'none',
-                transition: 'all 0.3s',
-                boxSizing: 'border-box',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#667eea';
-                e.target.style.background = 'rgba(255,255,255,0.12)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(255,255,255,0.12)';
-                e.target.style.background = 'rgba(255,255,255,0.08)';
-              }}
-            />
-          </div>
+          {infoMessage && (
+            <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded text-xs text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
+              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>{infoMessage}</span>
+            </div>
+          )}
 
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              color: 'rgba(255,255,255,0.8)',
-              fontSize: '13px',
-              fontWeight: '500',
-              marginBottom: '6px',
-            }}>
-              Contraseña
-            </label>
-            <input
-              type="password"
-              placeholder="Ingresa tu contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '14px 16px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: '12px',
-                fontSize: '15px',
-                color: 'white',
-                outline: 'none',
-                transition: 'all 0.3s',
-                boxSizing: 'border-box',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#667eea';
-                e.target.style.background = 'rgba(255,255,255,0.12)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(255,255,255,0.12)';
-                e.target.style.background = 'rgba(255,255,255,0.08)';
-              }}
-            />
-          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            
+            {/* Minimalist Input Grid matching user reference image */}
+            <div className="border border-zinc-300 dark:border-[#3e3f44] rounded overflow-hidden divide-y divide-zinc-300 dark:divide-[#3e3f44]">
+              {/* Username row */}
+              <div className="flex items-center bg-white dark:bg-[#1e1f21]">
+                <div className="w-12 h-11 bg-zinc-100 dark:bg-[#2d2e32] border-r border-zinc-300 dark:border-[#3e3f44] flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="Nombre de usuario"
+                  className="w-full px-3 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '16px',
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              opacity: loading ? 0.6 : 1,
-              transform: loading ? 'scale(0.98)' : 'scale(1)',
-              boxShadow: '0 4px 16px rgba(102, 126, 234, 0.4)',
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.5)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(102, 126, 234, 0.4)';
-            }}
-          >
-            {loading ? (
-              <span>⏳ Iniciando sesión...</span>
-            ) : (
-              <span>🚀 Iniciar Sesión</span>
-            )}
-          </button>
-        </form>
+              {/* Password row */}
+              <div className="flex items-center bg-white dark:bg-[#1e1f21] relative">
+                <div className="w-12 h-11 bg-zinc-100 dark:bg-[#2d2e32] border-r border-zinc-300 dark:border-[#3e3f44] flex items-center justify-center shrink-0">
+                  <Lock className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Contraseña"
+                  className="w-full pl-3 pr-10 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
 
-        {/* Footer */}
-        <div style={{
-          marginTop: '24px',
-          textAlign: 'center',
-          color: 'rgba(255,255,255,0.3)',
-          fontSize: '12px',
-          letterSpacing: '0.5px',
-        }}>
-          <span>Sistema UNEFCO La Paz v2.0</span>
+            {/* Asana Royal Blue Acceder Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#4573d2] hover:bg-[#3866c6] text-white font-medium text-sm py-2 px-4 rounded transition-colors cursor-pointer disabled:opacity-60"
+            >
+              {loading ? 'Validando...' : 'Acceder'}
+            </button>
+          </form>
         </div>
       </div>
     </div>
   );
 };
 
-export default LoginScreen;
+
