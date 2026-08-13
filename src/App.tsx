@@ -6,6 +6,8 @@ import { ProgramarView } from './components/ProgramarView';
 import { DashboardMetrics } from './components/DashboardMetrics';
 import { CorrelativosModule } from './components/CorrelativosModule';
 import { HistoryModal } from './components/HistoryModal';
+import { AdminModal } from './components/AdminModal';
+import { UserManagementModal } from './components/UserManagementModal';
 
 // Estilos completos
 const styles = {
@@ -108,7 +110,7 @@ const styles = {
   },
 };
 
-type TabType = 'dashboard' | 'programar' | 'correlativos' | 'history';
+type TabType = 'dashboard' | 'programar' | 'correlativos' | 'history' | 'admin' | 'users';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -145,6 +147,7 @@ function App() {
   }
 
   const isViewer = user.role === 'viewer';
+  const isAdmin = user.role === 'admin';
 
   const renderContent = () => {
     switch (activeTab) {
@@ -156,6 +159,10 @@ function App() {
         return <CorrelativosModule user={user} isViewer={isViewer} />;
       case 'history':
         return <HistoryModal user={user} isViewer={isViewer} />;
+      case 'admin':
+        return <AdminModal user={user} isViewer={isViewer} />;
+      case 'users':
+        return <UserManagementModal user={user} isViewer={isViewer} />;
       default:
         return <DashboardMetrics user={user} isViewer={isViewer} />;
     }
@@ -235,6 +242,28 @@ function App() {
             >
               📜 Historial
             </button>
+            {isAdmin && (
+              <>
+                <button
+                  style={{
+                    ...styles.tabButton,
+                    ...(activeTab === 'admin' ? styles.tabButtonActive : {}),
+                  }}
+                  onClick={() => setActiveTab('admin')}
+                >
+                  ⚙️ Admin
+                </button>
+                <button
+                  style={{
+                    ...styles.tabButton,
+                    ...(activeTab === 'users' ? styles.tabButtonActive : {}),
+                  }}
+                  onClick={() => setActiveTab('users')}
+                >
+                  👥 Usuarios
+                </button>
+              </>
+            )}
           </div>
 
           {renderContent()}
