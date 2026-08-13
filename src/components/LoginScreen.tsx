@@ -17,11 +17,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     setError('');
     setLoading(true);
 
+    console.log('🔍 Intentando login con:', { username, password: '***' });
+
     try {
       const user = await authService.login(username, password);
+      console.log('✅ Login exitoso:', user);
       onLogin(user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de autenticación');
+      console.error('❌ Error en login:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      console.log('📝 Mensaje de error:', errorMessage);
+      setError(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -59,7 +65,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             borderRadius: '8px',
             marginBottom: '20px',
             fontSize: '14px',
-            textAlign: 'center'
+            textAlign: 'center',
+            wordBreak: 'break-word'
           }}>
             {error}
           </div>
