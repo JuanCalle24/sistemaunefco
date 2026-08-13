@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { authService } from './services/authService';
 import { User } from './types';
 import LoginScreen from './components/LoginScreen';
+import ProgramarView from './components/ProgramarView';
 
 // Estilos inline para la app
 const styles = {
@@ -149,12 +150,9 @@ function App() {
           <p style={{ color: '#666', marginBottom: '16px' }}>
             Rol: <strong>{user.role}</strong>
           </p>
-          <p style={{ color: '#999', fontSize: '14px' }}>
-            Sistema UNEFCO La Paz - Gestión Académica
-          </p>
           
-          {/* Aquí puedes agregar tus componentes uno por uno */}
-          {/* Ejemplo: <ProgramarView user={user} isViewer={isViewer} /> */}
+          {/* ProgramarView - Componente principal */}
+          <ProgramarView user={user} isViewer={isViewer} />
         </div>
       </main>
     </div>
