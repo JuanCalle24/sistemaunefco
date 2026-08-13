@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { authService } from './services/authService';
 import { User } from './types';
 import LoginScreen from './components/LoginScreen';
+import { ProgramarView } from './components/ProgramarView';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -36,25 +37,41 @@ function App() {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  // Versión simple para depurar
+  const isViewer = user.role === 'viewer';
+
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>✅ Login exitoso!</h1>
-      <p><strong>Usuario:</strong> {user.nombre}</p>
-      <p><strong>Rol:</strong> {user.role}</p>
-      <button 
-        onClick={handleLogout}
-        style={{
-          padding: '10px 20px',
-          background: '#dc3545',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer'
-        }}
-      >
-        Cerrar Sesión
-      </button>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px',
+        padding: '10px 20px',
+        background: '#1a1a2e',
+        color: 'white',
+        borderRadius: '8px'
+      }}>
+        <h1 style={{ margin: 0, fontSize: '20px' }}>UNEFCO La Paz</h1>
+        <div>
+          <span style={{ marginRight: '15px' }}>👤 {user.nombre}</span>
+          <button 
+            onClick={handleLogout}
+            style={{
+              padding: '6px 14px',
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+
+      {/* Solo ProgramarView */}
+      <ProgramarView user={user} isViewer={isViewer} />
     </div>
   );
 }
