@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { authService } from './services/authService';
 import { User } from './types';
 import LoginScreen from './components/LoginScreen';
-import ProgramarView from './components/ProgramarView';
-import CorrelativosModule from './components/CorrelativosModule';
-import HistoryModal from './components/HistoryModal';
-import DashboardMetrics from './components/DashboardMetrics';
+import { ProgramarView } from './components/ProgramarView';
+import { CorrelativosModule } from './components/CorrelativosModule';
+import { HistoryModal } from './components/HistoryModal';
+import { DashboardMetrics } from './components/DashboardMetrics';
 
 // Estilos completos
 const styles = {
@@ -108,7 +108,7 @@ const styles = {
   },
 };
 
-type TabType = 'programar' | 'correlativos' | 'history' | 'dashboard';
+type TabType = 'dashboard' | 'programar' | 'correlativos' | 'history';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
