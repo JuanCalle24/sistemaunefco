@@ -3,6 +3,8 @@ import { authService } from './services/authService';
 import { User } from './types';
 import LoginScreen from './components/LoginScreen';
 import ProgramarView from './components/ProgramarView';
+import CorrelativosModule from './components/CorrelativosModule';
+import HistoryModal from './components/HistoryModal';
 
 // Estilos inline para la app
 const styles = {
@@ -84,11 +86,37 @@ const styles = {
     marginBottom: '20px',
     border: '1px solid #ffc107',
   },
+  tabs: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '20px',
+    borderBottom: '2px solid #e0e0e0',
+    paddingBottom: '8px',
+    flexWrap: 'wrap' as const,
+  },
+  tabButton: {
+    padding: '10px 20px',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontSize: '15px',
+    fontWeight: 500,
+    color: '#666',
+    borderRadius: '6px',
+    transition: 'all 0.2s',
+  },
+  tabButtonActive: {
+    background: '#0f3460',
+    color: 'white',
+  },
 };
+
+type TabType = 'programar' | 'correlativos' | 'history';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>('programar');
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -121,6 +149,20 @@ function App() {
 
   const isViewer = user.role === 'viewer';
 
+  // Renderizar contenido según tab activa
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'programar':
+        return <ProgramarView user={user} isViewer={isViewer} />;
+      case 'correlativos':
+        return <CorrelativosModule user={user} isViewer={isViewer} />;
+      case 'history':
+        return <HistoryModal user={user} isViewer={isViewer} />;
+      default:
+        return <ProgramarView user={user} isViewer={isViewer} />;
+    }
+  };
+
   return (
     <div style={styles.app}>
       {/* Header */}
@@ -150,9 +192,40 @@ function App() {
           <p style={{ color: '#666', marginBottom: '16px' }}>
             Rol: <strong>{user.role}</strong>
           </p>
-          
-          {/* ProgramarView - Componente principal */}
-          <ProgramarView user={user} isViewer={isViewer} />
+
+          {/* Navegación por tabs */}
+          <div style={styles.tabs}>
+            <button
+              style={{
+                ...styles.tabButton,
+                ...(activeTab === 'programar' ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => setActiveTab('programar')}
+            >
+              📅 Programar
+            </button>
+            <button
+              style={{
+                ...styles.tabButton,
+                ...(activeTab === 'correlativos' ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => setActiveTab('correlativos')}
+            >
+              📄 Correlativos
+            </button>
+            <button
+              style={{
+                ...styles.tabButton,
+                ...(activeTab === 'history' ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => setActiveTab('history')}
+            >
+              📜 Historial
+            </button>
+          </div>
+
+          {/* Contenido dinámico */}
+          {renderContent()}
         </div>
       </main>
     </div>
