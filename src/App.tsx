@@ -817,7 +817,7 @@ export default function App() {
         onOpenUserManagement={() => setIsUserMgmtOpen(true)}
         onSignOut={handleSignOut}
         activeRole={activeRole}
-        onToggleActiveRole={handleToggleActiveRole}
+        const isViewer = activeRole === 'viewer';
       />
 
 
