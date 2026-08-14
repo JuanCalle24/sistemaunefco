@@ -17,7 +17,7 @@ import {
   CheckCircle2,
   Clock,
   Laptop,
-  Share2
+  Lock
 } from 'lucide-react';
 import { ProgramacionResultado, SlotAsignacion } from '../types';
 import { CicloCard } from './CicloCard';
@@ -42,9 +42,7 @@ interface EventoViewProps {
   onTecnicoChange: (v: string) => void;
   availableTecnicos: string[];
   onResetFilters: () => void;
-  onGuardarSeguimiento?: () => void;
-  onGenerarPDF?: () => void;
-  onCompartir?: () => void;
+  isViewer?: boolean;
 }
 
 export const EventoView: React.FC<EventoViewProps> = ({
@@ -64,9 +62,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
   onTecnicoChange,
   availableTecnicos,
   onResetFilters,
-  onGuardarSeguimiento,
-  onGenerarPDF,
-  onCompartir
+  isViewer = false
 }) => {
   if (!resultado) {
     return (
@@ -80,13 +76,15 @@ export const EventoView: React.FC<EventoViewProps> = ({
         <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md leading-relaxed mb-5">
           Seleccione la opción "Generar Cronograma" en el menú lateral de opciones para ingresar los parámetros del docente y calcular los itinerarios formativos.
         </p>
-        <button
-          onClick={onGoToProgramar}
-          className="bg-[#4573d2] hover:bg-[#3866c6] text-white px-4 py-2 rounded text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
-        >
-          <Sliders className="w-4 h-4" />
-          <span>Configurar Parámetros</span>
-        </button>
+        {!isViewer && (
+          <button
+            onClick={onGoToProgramar}
+            className="bg-[#4573d2] hover:bg-[#3866c6] text-white px-4 py-2 rounded text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <Sliders className="w-4 h-4" />
+            <span>Configurar Parámetros</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -105,14 +103,16 @@ export const EventoView: React.FC<EventoViewProps> = ({
   const [showSavedToast, setShowSavedToast] = React.useState(false);
 
   const handleConfirmAndSave = () => {
-    if (resultado && resultado.daysUsed > 100) {
-      alert(`⚠️ NO SE PUEDE GUARDAR: La programación abarca ${resultado.daysUsed} días, excediendo el límite máximo de 100 días del contrato UNEFCO por ${resultado.daysUsed - 100} día(s). Por favor reajuste las fechas de inicio de los cursos.`);
-      return;
-    }
+    if (isViewer) return;
     setShowSavedToast(true);
     setTimeout(() => {
       setShowSavedToast(false);
     }, 4000);
+  };
+
+  const handleManualDateChangeGuarded = (slotId: string, cursoIdx: number, newDateStr: string) => {
+    if (isViewer) return;
+    onManualDateChange(slotId, cursoIdx, newDateStr);
   };
 
   return (
@@ -138,34 +138,18 @@ export const EventoView: React.FC<EventoViewProps> = ({
         </motion.div>
       )}
 
-      {/* OVERFLOW 100 DAYS BLOCKING CRITICAL ALERT BANNER */}
-      {resultado && resultado.daysUsed > 100 && (
-        <div className="bg-red-50 dark:bg-red-950/60 border-2 border-red-500 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-red-900 dark:text-red-100 shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 font-bold">
-              <Clock className="w-5 h-5 animate-bounce" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-300">
-                🚨 Error de Límite de Contrato ({resultado.daysUsed} / 100 Días)
-              </h4>
-              <p className="text-xs font-medium mt-0.5">
-                La programación manual abarca <strong>{resultado.daysUsed} días calendario</strong>, excediendo por <strong className="text-red-700 dark:text-red-300">+{resultado.daysUsed - 100} día(s)</strong> el límite máximo de 100 días de contrato UNEFCO. Debe reajustar las fechas para poder registrar un cronograma válido.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onGoToProgramar}
-            className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded shadow-sm flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
-          >
-            <Sliders className="w-4 h-4" />
-            <span>Ajustar Fechas en Programador</span>
-          </button>
+      {/* Read-only Notice for Viewer */}
+      {isViewer && (
+        <div className="bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-300 dark:border-zinc-700 p-3.5 rounded-lg flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
+          <Lock className="w-4 h-4 shrink-0" />
+          <span className="text-xs font-semibold">
+            Modo Solo Lectura — Su rol no permite editar ni guardar cambios en este cronograma.
+          </span>
         </div>
       )}
 
       {/* Manual Mode Active Notice */}
-      {modo === 'manual' && (
+      {modo === 'manual' && !isViewer && (
         <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 p-3.5 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
             <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -183,19 +167,60 @@ export const EventoView: React.FC<EventoViewProps> = ({
         </div>
       )}
 
-      {/* HEADER BAR ABOVE MAIN CARDS */}
-      <div className="flex items-center justify-between gap-3 pt-1">
-        <h3 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-          <Info className="w-4 h-4 text-zinc-500" />
-          <span>Información del Evento</span>
-        </h3>
+      {/* ASANA STYLE CLEAN EVENT BANNER */}
+      <div className="bg-[#1e2330] text-white rounded-lg p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-zinc-800">
+        <div>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 bg-white/10 px-2.5 py-0.5 rounded border border-white/10 mb-1.5 inline-block">
+            PORTAL ACADÉMICO UNEFCO LA PAZ
+          </span>
+          <h2 className="text-lg md:text-xl font-semibold tracking-tight text-white font-display">
+            Evento: {lugarName}
+          </h2>
+          <p className="text-xs text-zinc-300 mt-0.5 font-body">
+            Sede La Paz • {resultado.asignaciones.length} Cursos Programados • Código: <code className="font-mono bg-black/40 px-1.5 py-0.5 rounded font-medium text-zinc-200">{resultado.idTransaccion}</code>
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!isViewer && (
+            <button
+              onClick={handleConfirmAndSave}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded border border-emerald-500 flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+              <span>Guardar en Seguimiento</span>
+            </button>
+          )}
+
+          <button
+            onClick={onGoToProgramar}
+            className="bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-3.5 py-2 rounded border border-white/20 flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            {isViewer ? (
+              <>
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Ver Parámetros</span>
+              </>
+            ) : (
+              <>
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Editar Parámetros</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* INFORMACIÓN DEL EVENTO CARDS */}
       <div className="space-y-2.5">
+        <h3 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+          <Info className="w-4 h-4 text-zinc-500" />
+          <span>Información del Evento</span>
+        </h3>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Card 1: Facilitador */}
-          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
+          <div className="bg-white dark:bg-[#252628] p-4 flex flex-col items-center text-center border border-zinc-200 dark:border-[#333438] rounded-lg">
             <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
               <User className="w-5 h-5" />
             </div>
@@ -213,7 +238,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
           </div>
 
           {/* Card 2: Distrito / Lugar */}
-          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
+          <div className="bg-white dark:bg-[#252628] p-4 flex flex-col items-center text-center border border-zinc-200 dark:border-[#333438] rounded-lg">
             <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
               <MapPin className="w-5 h-5" />
             </div>
@@ -226,12 +251,12 @@ export const EventoView: React.FC<EventoViewProps> = ({
           </div>
 
           {/* Card 3: Mes / Versión */}
-          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
+          <div className="bg-white dark:bg-[#252628] p-4 flex flex-col items-center text-center border border-zinc-200 dark:border-[#333438] rounded-lg">
             <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
               <Calendar className="w-5 h-5" />
             </div>
             <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
-              MES DE PROGRAMACIÓN
+              Mes / Versión
             </span>
             <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase mt-0.5 capitalize">
               {monthName}
@@ -239,7 +264,7 @@ export const EventoView: React.FC<EventoViewProps> = ({
           </div>
 
           {/* Card 4: Modalidad */}
-          <div className="glass-panel p-4 flex flex-col items-center text-center rounded-lg">
+          <div className="bg-white dark:bg-[#252628] p-4 flex flex-col items-center text-center border border-zinc-200 dark:border-[#333438] rounded-lg">
             <div className="w-10 h-10 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 flex items-center justify-center mb-2 shrink-0">
               <Laptop className="w-5 h-5" />
             </div>
@@ -307,51 +332,12 @@ export const EventoView: React.FC<EventoViewProps> = ({
                 slot={slot}
                 index={idx}
                 cursos={cursosCiclo}
-                modo={modo}
-                onManualDateChange={onManualDateChange}
+                modo={isViewer ? 'automatico' : modo}
+                onManualDateChange={handleManualDateChangeGuarded}
                 manualDates={manualDatesMap}
               />
             );
           })}
-        </div>
-      </div>
-
-      {/* HERRAMIENTAS DE FINALIZACIÓN FOOTER BAR */}
-      <div className="bg-[#111625] dark:bg-[#111625] border border-zinc-800 rounded-xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4 mt-8">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs font-bold text-zinc-100 uppercase tracking-wider font-display">
-            HERRAMIENTAS DE FINALIZACIÓN
-          </span>
-          <span className="text-zinc-600 font-bold hidden sm:inline">|</span>
-          <span className="text-xs text-zinc-400 font-medium">
-            Realiza las siguientes acciones para tu seguimiento a los eventos
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={onGuardarSeguimiento}
-            className="bg-[#009b68] hover:bg-[#00875a] active:bg-[#00734c] text-white font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Guarda tu programación</span>
-          </button>
-
-          <button
-            onClick={onGenerarPDF}
-            className="bg-[#1e2333] hover:bg-[#282f45] active:bg-[#181d2b] text-zinc-200 border border-zinc-700/80 font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-          >
-            <FileText className="w-4 h-4 text-zinc-300" />
-            <span>Genera el PDF de tu programación</span>
-          </button>
-
-          <button
-            onClick={onCompartir}
-            className="bg-[#1e2333] hover:bg-[#282f45] active:bg-[#181d2b] text-zinc-200 border border-zinc-700/80 font-bold text-xs rounded-lg px-4 py-2.5 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-          >
-            <Share2 className="w-4 h-4 text-zinc-300" />
-            <span>Comparte la programación</span>
-          </button>
         </div>
       </div>
     </div>
