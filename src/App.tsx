@@ -803,6 +803,7 @@ export default function App() {
           setTecnico(u.displayName);
         }}
         isDarkMode={isDarkMode}
+        onToggleDarkMode={handleToggleDarkMode}
       />
     );
   }
