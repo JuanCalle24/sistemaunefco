@@ -79,6 +79,7 @@ interface ProgramarViewProps {
   errorMessage?: string | null;
   warnings?: string[];
   currentUser?: UserProfile | null;
+  isViewer?: boolean;
 }
 
 export const ProgramarView: React.FC<ProgramarViewProps> = ({
@@ -113,19 +114,20 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
   onClearAll,
   errorMessage,
   warnings = [],
-  currentUser
+  currentUser,
+  isViewer = false
 }) => {
   const { grado: currentGrado, nombre: currentNombre } = parseDegreeAndName(facilitador);
 
   const handleGradoSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newGrado = e.target.value;
-    const combined = newGrado ? `${newGrado} ${currentNombre}` : currentNombre;
+    const combined = newGrado ? `${newGrado} ${currentNombre}`.trim() : currentNombre;
     onChangeFacilitador(combined);
   };
 
   const handleNombreInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.toUpperCase();
-    const combined = currentGrado ? `${currentGrado} ${rawValue}` : rawValue;
+    const newNombre = capitalizeName(e.target.value);
+    const combined = currentGrado ? `${currentGrado} ${newNombre}`.trimStart() : newNombre;
     onChangeFacilitador(combined);
   };
 
@@ -159,14 +161,14 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Section 1: Personal Asignado */}
-        <div className="bg-white dark:bg-[#252628] p-5 rounded-xl border border-zinc-200 dark:border-[#333438] space-y-4 shadow-2xs">
+        <div className="bg-white dark:bg-[#252628] p-5 rounded-lg border border-zinc-200 dark:border-[#333438] space-y-4">
           <div className="flex items-center justify-between border-b border-zinc-200 dark:border-[#333438] pb-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-              <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+              <User className="w-4 h-4 text-zinc-500" />
               <span>Personal Asignado</span>
             </div>
             {cleanCi && (
-              <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 font-mono">
+              <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-mono">
                 CI Registrada
               </span>
             )}
@@ -174,19 +176,20 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
 
           {/* Facilitador */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 block">
-              Docente / Facilitador <span className="text-emerald-600 dark:text-emerald-400">*</span>
+            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
+              Docente / Facilitador <span className="text-zinc-400">*</span>
             </label>
             <div className="flex gap-2">
               <select
                 value={currentGrado}
                 onChange={handleGradoSelectChange}
-                className="w-28 shrink-0 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 dark:hover:border-zinc-500 rounded-lg px-2.5 py-2.5 text-xs font-bold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
+                disabled={isViewer}
+                className="w-24 shrink-0 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded px-2.5 py-2 text-xs font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {Array.from(new Set(GRADOS_ACADEMICOS.map(g => g.toUpperCase()))).map(g => (
+                {GRADOS_ACADEMICOS.map(g => (
                   <option key={g} value={g}>{g}</option>
                 ))}
-                <option value="">(SIN GRADO)</option>
+                <option value="">(Sin Grado)</option>
               </select>
               <input
                 type="text"
@@ -194,18 +197,19 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 placeholder="Nombre Completo..."
                 value={currentNombre}
                 onChange={handleNombreInputChange}
-                className="flex-1 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 dark:hover:border-zinc-500 rounded-lg px-3.5 py-2.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                readOnly={isViewer}
+                className="flex-1 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none disabled:opacity-60 read-only:opacity-60 read-only:cursor-not-allowed"
               />
             </div>
           </div>
 
           {/* Cédula de Identidad (CI) */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 block">
-              Cédula de Identidad (CI) <span className="text-emerald-600 dark:text-emerald-400">*</span>
+            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
+              Cédula de Identidad (CI) <span className="text-zinc-400">*</span>
             </label>
             <div className="relative flex items-center">
-              <CreditCard className="w-4 h-4 absolute left-3.5 text-zinc-400 pointer-events-none" />
+              <CreditCard className="w-4 h-4 absolute left-3 text-zinc-400 pointer-events-none" />
               <input
                 type="text"
                 autoComplete="off"
@@ -215,21 +219,22 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 placeholder="Ingrese C.I. numérico..."
                 value={ci}
                 onChange={(e) => onChangeCi(e.target.value.replace(/[^0-9]/g, ''))}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 dark:hover:border-zinc-500 rounded-lg text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                readOnly={isViewer}
+                className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-xs font-mono font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none read-only:opacity-60 read-only:cursor-not-allowed"
               />
             </div>
-            <p className="text-[10px] text-zinc-400 mt-1 font-medium">
+            <p className="text-[10px] text-zinc-400 mt-1">
               * Exclusivamente dígitos numéricos.
             </p>
 
             {/* Active Phase Progress Display for CI */}
             {cleanCi && (
-              <div className="mt-2 p-2.5 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded-lg flex items-center justify-between text-xs">
+              <div className="mt-2 p-2.5 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded flex items-center justify-between text-xs">
                 <span className="text-zinc-600 dark:text-zinc-400 font-medium flex items-center gap-1.5">
-                  <Workflow className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <Workflow className="w-3.5 h-3.5 text-zinc-500" />
                   <span>Historial CI {cleanCi}:</span>
                 </span>
-                <span className="font-mono text-emerald-900 dark:text-emerald-200 font-bold bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded text-[11px]">
+                <span className="font-mono text-zinc-900 dark:text-zinc-100 font-semibold bg-zinc-200 dark:bg-[#2d2e32] px-2 py-0.5 rounded text-[11px]">
                   {activeRecordsForCi.length} Cronograma(s)
                 </span>
               </div>
@@ -238,7 +243,7 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
 
           {/* Técnico */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 block">
+            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
               Técnico de Seguimiento
             </label>
             <div className="relative flex items-center">
@@ -246,9 +251,9 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 type="text"
                 readOnly
                 value={currentUser?.displayName || tecnico || 'Sin Asignar'}
-                className="w-full bg-zinc-100 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded-lg pl-3.5 pr-8 py-2.5 text-sm font-bold text-zinc-700 dark:text-zinc-300 select-none cursor-default uppercase"
+                className="w-full bg-zinc-100 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded pl-3 pr-8 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 select-none cursor-default"
               />
-              <div className="absolute right-3 text-emerald-600 dark:text-emerald-400" title="Usuario Autenticado">
+              <div className="absolute right-2.5 text-zinc-400" title="Usuario Autenticado">
                 <ShieldCheck className="w-4 h-4" />
               </div>
             </div>
@@ -256,39 +261,41 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
         </div>
 
         {/* Section 2: Fecha de Inicio & Modo */}
-        <div className="bg-white dark:bg-[#252628] p-5 rounded-xl border border-zinc-200 dark:border-[#333438] space-y-4 shadow-2xs">
-          <div className="flex items-center gap-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider border-b border-zinc-200 dark:border-[#333438] pb-3">
-            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <div className="bg-white dark:bg-[#252628] p-5 rounded-lg border border-zinc-200 dark:border-[#333438] space-y-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider border-b border-zinc-200 dark:border-[#333438] pb-3">
+            <Calendar className="w-4 h-4 text-zinc-500" />
             <span>Fecha de Contrato & Modo</span>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 block">
+            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
               Modo de Cálculo
             </label>
-            <div className="bg-zinc-100 dark:bg-[#1e1f21] p-1 rounded-lg flex gap-1 border border-zinc-200 dark:border-[#333438]">
+            <div className="bg-zinc-100 dark:bg-[#1e1f21] p-1 rounded flex gap-1 border border-zinc-200 dark:border-[#333438]">
               <button
                 type="button"
                 onClick={() => onToggleModo('automatico')}
-                className={`flex-1 py-2 px-2 rounded-md text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                disabled={isViewer}
+                className={`flex-1 py-2 px-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                   modo === 'automatico'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white shadow-2xs border border-zinc-200 dark:border-[#38393e]'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
                 }`}
               >
-                <Zap className="w-3.5 h-3.5" />
+                <Zap className="w-3.5 h-3.5 text-zinc-500" />
                 <span>Automático</span>
               </button>
               <button
                 type="button"
                 onClick={() => onToggleModo('manual')}
-                className={`flex-1 py-2 px-2 rounded-md text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                disabled={isViewer}
+                className={`flex-1 py-2 px-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                   modo === 'manual'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    ? 'bg-white dark:bg-[#2a2b2e] text-zinc-900 dark:text-white shadow-2xs border border-zinc-200 dark:border-[#38393e]'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
                 }`}
               >
-                <Edit3 className="w-3.5 h-3.5" />
+                <Edit3 className="w-3.5 h-3.5 text-zinc-500" />
                 <span>Manual</span>
               </button>
             </div>
@@ -297,8 +304,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
           {/* Contract Start & Course 1 Start Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 block flex items-center gap-1.5">
-                <CalendarDays className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block flex items-center gap-1.5">
+                <CalendarDays className="w-3.5 h-3.5 text-zinc-500" />
                 <span>Inicio de Contrato</span>
               </label>
               <DatePickerPopup
@@ -308,14 +315,14 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 title="INICIO DE CONTRATO"
                 subtitle="Define el margen límite de 100 días"
               />
-              <p className="text-[10px] text-zinc-400 font-medium">
+              <p className="text-[10px] text-zinc-400">
                 Límite de 100 días calendario.
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-emerald-700 dark:text-emerald-400 block flex items-center gap-1.5">
-                <CalendarCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <label className="text-xs font-semibold text-[#4573d2] dark:text-[#6b93e8] block flex items-center gap-1.5">
+                <CalendarCheck className="w-3.5 h-3.5" />
                 <span>Inicio Curso 1 (Ciclo 1)</span>
               </label>
               <DatePickerPopup
@@ -325,9 +332,9 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 minDate={selectedDate}
                 title="INICIO CURSO 1 / CICLO 1"
                 subtitle="Escalona el inicio de los siguientes cursos"
-                buttonClassName="w-full bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/80 hover:border-emerald-600 rounded-lg px-3.5 py-2.5 text-sm cursor-pointer flex items-center justify-between shadow-2xs transition-all group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                buttonClassName="w-full bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 hover:border-indigo-600 rounded-sm px-3 py-2 text-xs cursor-pointer flex items-center justify-between shadow-2xs transition-colors group"
               />
-              <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
                 Define el arranque del Curso 1.
               </p>
             </div>
@@ -337,11 +344,11 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
           {modo === 'automatico' && (
             <div className="space-y-2 pt-2 border-t border-zinc-200 dark:border-[#333438]">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5 uppercase tracking-wider">
-                  <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Sliders className="w-3.5 h-3.5 text-indigo-500" />
                   <span>Regulador de Holgura (Ritmo)</span>
                 </label>
-                <span className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
                   {holguraDias === 0
                     ? 'Ajustado (0 días de descanso)'
                     : `+${holguraDias} día(s) de holgura entre cursos`}
@@ -356,7 +363,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 step={1}
                 value={holguraDias}
                 onChange={(e) => onChangeHolguraDias && onChangeHolguraDias(Number(e.target.value))}
-                className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                disabled={isViewer}
+                className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-600 disabled:opacity-60 disabled:cursor-not-allowed"
               />
 
               {/* Stagger Presets Buttons */}
@@ -364,9 +372,10 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onChangeHolguraDias && onChangeHolguraDias(0)}
-                  className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                  disabled={isViewer}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                     holguraDias === 0
-                      ? 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
                   }`}
                 >
@@ -376,9 +385,10 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onChangeHolguraDias && onChangeHolguraDias(3)}
-                  className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                  disabled={isViewer}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                     holguraDias === 3
-                      ? 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
                   }`}
                 >
@@ -388,9 +398,10 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onChangeHolguraDias && onChangeHolguraDias(7)}
-                  className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                  disabled={isViewer}
+                  className={`flex-1 py-1 px-2 rounded text-[10px] font-bold transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                     holguraDias === 7
-                      ? 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#38393e]'
                   }`}
                 >
@@ -403,13 +414,13 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
       </div>
 
       {/* Section 3: Ciclos Formativos Matrix */}
-      <div className="bg-white dark:bg-[#252628] p-5 rounded-xl border border-zinc-200 dark:border-[#333438] space-y-4 shadow-2xs">
+      <div className="bg-white dark:bg-[#252628] p-5 rounded-lg border border-zinc-200 dark:border-[#333438] space-y-4">
         <div className="flex items-center justify-between border-b border-zinc-200 dark:border-[#333438] pb-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-            <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+            <BookOpen className="w-4 h-4 text-zinc-500" />
             <span>Ciclos Formativos ({totalCiclosCount}/5)</span>
           </div>
-          <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 font-mono font-bold">
+          <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-mono">
             MÁX. 5 CICLOS
           </span>
         </div>
@@ -427,6 +438,7 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                   <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase">
                     Asignación #{rowIdx + 1}
                   </span>
+                  {!isViewer && (
                   <button
                     type="button"
                     onClick={() => onRemoveMatrixRow(row.id)}
@@ -435,11 +447,12 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-2 space-y-1">
-                    <label className="text-[11px] text-zinc-500 dark:text-zinc-400 font-bold block uppercase tracking-wider">
+                    <label className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium block">
                       Ciclo de Oferta Formativa UNEFCO 2026
                     </label>
                     <select
@@ -451,7 +464,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                           selectedCursoIndex: row.isExceptional ? 0 : null
                         });
                       }}
-                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 rounded-lg px-3.5 py-2 text-xs font-bold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
+                      disabled={isViewer}
+                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {OFERTA_FORMATIVA_UNEFCO_2026.map((c, idx) => (
                         <option key={c.id} value={idx}>
@@ -462,21 +476,22 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-500 dark:text-zinc-400 font-bold block uppercase tracking-wider">
+                    <label className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium block">
                       Lugar / Sede
                     </label>
                     <input
                       type="text"
                       value={row.lugar}
                       onChange={e => onUpdateMatrixRow(row.id, 'lugar', e.target.value.toUpperCase())}
-                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 rounded-lg px-3.5 py-2 text-xs font-mono font-bold text-zinc-900 dark:text-zinc-100 uppercase focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                      readOnly={isViewer}
+                      className="w-full bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-3 py-2 text-xs font-mono font-medium text-zinc-900 dark:text-zinc-100 uppercase focus:outline-none read-only:opacity-60 read-only:cursor-not-allowed"
                     />
                   </div>
                 </div>
 
                 {/* Optional Exceptional Course Selector */}
                 <div className="pt-2 border-t border-zinc-200 dark:border-[#2d2e32] flex flex-wrap items-center justify-between gap-2">
-                  <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer select-none font-medium">
+                  <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={Boolean(row.isExceptional)}
@@ -487,7 +502,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                           selectedCursoIndex: checked ? 0 : null
                         });
                       }}
-                      className="rounded text-emerald-600 focus:ring-emerald-600 h-3.5 w-3.5 cursor-pointer accent-emerald-600"
+                      disabled={isViewer}
+                      className="rounded text-zinc-700 focus:ring-zinc-600 h-3.5 w-3.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <span>Asignar solo 1 curso individual (Caso Excepcional)</span>
                   </label>
@@ -497,7 +513,8 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
                       <select
                         value={row.selectedCursoIndex ?? 0}
                         onChange={e => onUpdateMatrixRow(row.id, 'selectedCursoIndex', parseInt(e.target.value, 10))}
-                        className="bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] hover:border-emerald-500 rounded-lg px-2.5 py-1 text-xs font-bold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-emerald-600"
+                        disabled={isViewer}
+                        className="bg-white dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded px-2.5 py-1 text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {selectedCicloObj.cursos.map((cName, cIdx) => (
                           <option key={cIdx} value={cIdx}>
@@ -512,13 +529,13 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
             );
           })}
 
-          {totalCiclosCount < 5 && (
+          {totalCiclosCount < 5 && !isViewer && (
             <button
               type="button"
               onClick={onAddMatrixRow}
-              className="w-full py-2.5 border-2 border-dashed border-emerald-300 dark:border-emerald-800/80 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              className="w-full py-2.5 border border-dashed border-zinc-300 dark:border-[#3e3f44] hover:bg-zinc-50 dark:hover:bg-[#2d2e32] text-zinc-700 dark:text-zinc-300 text-xs font-medium rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <Plus className="w-4 h-4" />
               <span>Añadir Asignación de Ciclo</span>
             </button>
           )}
@@ -527,26 +544,12 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
 
       {/* Error & Warnings display */}
       {errorMessage && (
-        <div className="bg-red-50 dark:bg-red-950/40 border-2 border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 p-4 rounded-xl text-xs space-y-1 shadow-sm">
-          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-red-700 dark:text-red-300">
-            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
-            <span>Restricción Crítica de Programación Detectada</span>
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 p-3 rounded text-xs">
+          <div className="flex items-center gap-1.5 font-semibold mb-1">
+            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+            <span>Restricción Detectada</span>
           </div>
-          <p className="font-medium leading-relaxed pl-7">{errorMessage}</p>
-        </div>
-      )}
-
-      {warnings && warnings.length > 0 && !errorMessage && (
-        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 p-3.5 rounded-xl text-xs space-y-1">
-          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>Advertencias de Configuración Manual ({warnings.length})</span>
-          </div>
-          <ul className="list-disc list-inside space-y-0.5 text-[11px] font-medium pl-2">
-            {warnings.map((w, idx) => (
-              <li key={idx}>{w}</li>
-            ))}
-          </ul>
+          <p>{errorMessage}</p>
         </div>
       )}
 
@@ -556,7 +559,7 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
           <button
             type="button"
             onClick={onClearAll}
-            className="bg-zinc-100 dark:bg-[#252628] hover:bg-zinc-200 dark:hover:bg-[#2d2e32] text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-[#333438] px-4 py-3 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            className="bg-zinc-100 dark:bg-[#252628] hover:bg-zinc-200 dark:hover:bg-[#2d2e32] text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-[#333438] px-4 py-2.5 rounded font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reiniciar</span>
@@ -566,11 +569,16 @@ export const ProgramarView: React.FC<ProgramarViewProps> = ({
         <button
           type="button"
           onClick={onGenerar}
-          disabled={!isValid || isGenerating}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider py-3.5 px-5 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+          disabled={!isValid || isGenerating || isViewer}
+          className="flex-1 bg-[#4573d2] hover:bg-[#3866c6] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider py-3 px-5 rounded-md shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           {isGenerating ? (
             <span>Procesando Guardado...</span>
+          ) : isViewer ? (
+            <>
+              <Lock className="w-4 h-4 text-white" />
+              <span>Solo Lectura (Sin Permiso de Edición)</span>
+            </>
           ) : modo === 'manual' ? (
             <>
               <CheckCircle2 className="w-4 h-4 text-white" />
