@@ -89,7 +89,7 @@ export interface FeriadoInfo {
   esFijo: boolean;
 }
 
-export type UserRole = 'admin' | 'tecnico';
+export type UserRole = 'admin' | 'tecnico' | 'viewer';
 export type UserStatus = 'active' | 'inactive';
 
 export interface UserProfile {
