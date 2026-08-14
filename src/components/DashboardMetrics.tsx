@@ -17,7 +17,8 @@ import {
   Check, 
   Info, 
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  Eye
 } from 'lucide-react';
 
 interface DashboardMetricsProps {
@@ -45,6 +46,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
   const [tramiteFilter, setTramiteFilter] = useState<'pendientes' | 'completados' | 'todos'>('pendientes');
 
   const isAdminMode = activeRole === 'admin';
+  const isViewer = activeRole === 'viewer';
   const totalGlobalRecords = history.length;
   const activeGlobalRecords = history.filter(h => h.estado !== 'ANULADO').length;
   const anuladosGlobalRecords = history.filter(h => h.estado === 'ANULADO').length;
@@ -209,64 +211,86 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
 
   return (
     <div className="space-y-5">
-      {/* Active Mode Indicator Banner */}
-      <div className="glass-card p-4 flex flex-wrap items-center justify-between gap-3">
+      {/* Active Role Mode Indicator Banner */}
+      <div className="bg-white dark:bg-[#252628] p-4 rounded-lg border border-zinc-200 dark:border-[#333438] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800">
-            <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <div className="w-9 h-9 rounded bg-zinc-100 dark:bg-[#2d2e32] text-zinc-700 dark:text-zinc-200 flex items-center justify-center shrink-0">
+            {isViewer ? (
+              <Eye className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+            ) : isAdminMode ? (
+              <ShieldCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+            ) : (
+              <UserCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider font-display">
-                Gestión Académica de Programaciones
+              <h2 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                {isViewer
+                  ? 'Modo Visualización: Solo Lectura'
+                  : isAdminMode
+                    ? 'Modo Administrador: Monitoreo Institucional UNEFCO'
+                    : 'Modo Técnico de Seguimiento: Gestión Académica'}
               </h2>
-              <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 font-mono font-bold">
-                Mis Programaciones
+              <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-mono">
+                {isViewer ? 'Solo Lectura' : isAdminMode ? 'Auditoría' : 'Operativo'}
               </span>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Supervisión y seguimiento de tus cronogramas y ciclos formativos activos.
+              {isViewer
+                ? `Vista de solo lectura de la Sede UNEFCO. Registros académicos: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
+                : isAdminMode
+                  ? `Monitoreo consolidado de la Sede UNEFCO. Registros académicos: ${totalGlobalRecords} cronogramas (${activeGlobalRecords} activos, ${anuladosGlobalRecords} anulados).`
+                  : `Supervisión de cronogramas y ciclos formativos activos bajo la gestión de ${currentUser?.displayName || (resultado ? resultado.tecnico : 'Técnico de Seguimiento')}.`}
             </p>
           </div>
         </div>
+
+        {(isAdminMode || isViewer) && (
+          <div className="flex items-center gap-2 text-xs font-mono bg-zinc-50 dark:bg-[#1e1f21] px-3 py-1.5 rounded border border-zinc-200 dark:border-[#333438]">
+            <span className="text-zinc-500">Cronogramas Activos:</span>
+            <span className="text-zinc-900 dark:text-zinc-100 font-semibold">{activeGlobalRecords} Registrados</span>
+            {anuladosGlobalRecords > 0 && (
+              <span className="text-red-600 dark:text-red-400">({anuladosGlobalRecords} Anulados)</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Trámites Pendientes Card */}
-        <div className="glass-card glass-card-hover p-4 flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
-                Trámites sin Calendario
+                Trámites sin Cronograma
               </span>
               {tramitesPendientes.length > 0 && (
                 <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
               )}
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-zinc-900 dark:text-white font-mono">
+              <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
                 {tramitesPendientes.length}
               </span>
-              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
-                Pendientes
-              </span>
+              <span className="text-xs text-zinc-500">Pendientes</span>
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-[#333438] flex items-center justify-between text-xs text-zinc-500">
             <span>Facilitadores:</span>
-            <span className="font-mono text-zinc-800 dark:text-zinc-200 font-bold">{totalTramites} Trámites</span>
+            <span className="font-mono text-zinc-800 dark:text-zinc-200">{totalTramites} Trámites</span>
           </div>
         </div>
 
         {/* En Curso Card */}
-        <div className="glass-card glass-card-hover p-4 flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
           <div>
             <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
               En Curso Hoy
             </span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-zinc-900 dark:text-white font-mono">
+              <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
                 {countEnCurso}
               </span>
               <span className="text-xs text-zinc-500">Sesiones activas</span>
@@ -278,13 +302,13 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
         </div>
 
         {/* Próximos Card */}
-        <div className="glass-card glass-card-hover p-4 flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
           <div>
             <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
               Próximos Módulos
             </span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-zinc-900 dark:text-white font-mono">
+              <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
                 {countProximos}
               </span>
               <span className="text-xs text-zinc-500">En programación</span>
@@ -296,16 +320,16 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
         </div>
 
         {/* Total Cronogramas Guardados Card */}
-        <div className="glass-card glass-card-hover p-4 flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] p-4 rounded-lg flex flex-col justify-between">
           <div>
             <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
-              Calendarios Académicos
+              Cronogramas Formativos
             </span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-zinc-900 dark:text-white font-mono">
+              <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
                 {activeGlobalRecords}
               </span>
-              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Vigentes</span>
+              <span className="text-xs text-zinc-500">Vigentes</span>
             </div>
           </div>
           <div className="mt-3 h-1 bg-zinc-100 dark:bg-[#1e1f21] rounded-full overflow-hidden">
@@ -317,7 +341,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* SECCIÓN DEDICADA: TRÁMITES DE CONTRATACIÓN & ESTADO DE CRONOGRAMA  */}
       {/* ------------------------------------------------------------------- */}
-      <div className="glass-card rounded-lg p-5 space-y-4">
+      <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg p-5 space-y-4">
         
         {/* Header & Filter Controls */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-[#333438]">
@@ -361,7 +385,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                 }`}
               >
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Con Calendario ({tramitesCompletados.length})</span>
+                <span>Con Cronograma ({tramitesCompletados.length})</span>
               </button>
 
               <button
@@ -408,7 +432,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
               return (
                 <div
                   key={item.ciCompleta}
-                  className="p-3.5 glass-card glass-card-hover flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
+                  className="p-3.5 rounded bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
                 >
                   {/* Left: Facilitador Info & CI */}
                   <div className="space-y-1 min-w-[200px]">
@@ -421,6 +445,10 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                     <div className="flex items-center gap-2 text-[11px] text-zinc-500">
                       <span className="font-mono">
                         CI: {item.ciCompleta}
+                      </span>
+                      <span>•</span>
+                      <span>
+                        Reg: {item.usuarioGenerador}
                       </span>
                     </div>
                   </div>
@@ -473,7 +501,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                       </div>
                     )}
 
-                    {onGoToProgramar && (
+                    {onGoToProgramar && !isViewer && (
                       <button
                         type="button"
                         onClick={() => onGoToProgramar(item.nombreFacilitador, item.ciNum)}
@@ -503,12 +531,12 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
           {/* Bento Charts Section */}
           <div className="grid grid-cols-12 gap-4">
             {/* Academic Program Progress */}
-            <div className="col-span-12 lg:col-span-8 glass-card p-5 space-y-3">
+            <div className="col-span-12 lg:col-span-8 bg-white dark:bg-[#252628] p-5 rounded-lg border border-zinc-200 dark:border-[#333438] space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-200 dark:border-[#333438] pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-white uppercase tracking-tight font-display">
+                    <GraduationCap className="w-4 h-4 text-zinc-500" />
+                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-white uppercase tracking-tight">
                       Módulos Formativos Programados
                     </h3>
                   </div>
@@ -526,12 +554,12 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                 {resultado.asignaciones.map((mod, idx) => {
                   const days = Math.max(1, Math.ceil((new Date(mod.fin).getTime() - new Date(mod.inicio).getTime()) / (1000 * 60 * 60 * 24)) + 1);
                   return (
-                    <div key={idx} className="p-3 glass-card glass-card-hover space-y-1.5">
+                    <div key={idx} className="p-3 bg-zinc-50 dark:bg-[#1e1f21] rounded border border-zinc-200 dark:border-[#333438] space-y-1.5">
                       <div className="flex flex-wrap justify-between items-center text-xs">
                         <span className="font-semibold text-zinc-900 dark:text-white">
                           {mod.cicloId} — Módulo {idx + 1}: {mod.cursoNombre}
                         </span>
-                        <span className="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
+                        <span className="font-mono text-[11px] text-zinc-500">
                           {days} Días ({mod.modalidad})
                         </span>
                       </div>
@@ -554,7 +582,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
             </div>
 
             {/* Location Distribution */}
-            <div className="col-span-12 lg:col-span-4 glass-card p-5 flex flex-col justify-between">
+            <div className="col-span-12 lg:col-span-4 bg-white dark:bg-[#252628] p-5 rounded-lg border border-zinc-200 dark:border-[#333438] flex flex-col justify-between">
               <div>
                 <h3 className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-200 dark:border-[#333438]">
                   Distribución por Sede
@@ -568,7 +596,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                       </div>
                       <div className="h-1.5 bg-zinc-100 dark:bg-[#1e1f21] rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-emerald-600 rounded-full" 
+                          className="h-full bg-[#4573d2] rounded-full" 
                           style={{ width: `${(Number(count) / (resultado?.slots?.length || 1)) * 100}%` }}
                         ></div>
                       </div>
@@ -583,7 +611,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
           </div>
 
           {/* Active Schedule Course Filter & Table */}
-          <div className="glass-card rounded-lg p-5 space-y-3">
+          <div className="bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg p-5 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-[#333438]">
               <div>
                 <h3 className="font-semibold text-sm text-zinc-900 dark:text-white">
@@ -664,7 +692,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
                   return (
                     <div 
                       key={idx}
-                      className="p-3 glass-card glass-card-hover flex flex-wrap items-center justify-between gap-3 text-xs"
+                      className="p-3 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded flex flex-wrap items-center justify-between gap-3 text-xs"
                     >
                       <div className="flex items-center gap-2.5">
                         <BookOpen className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
