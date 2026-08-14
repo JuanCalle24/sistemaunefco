@@ -21,7 +21,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Hash,
-  Lock
+  Lock,
+  Eye
 } from 'lucide-react';
 import { 
   CorrelativoRecord, 
@@ -31,7 +32,7 @@ import {
   subscribeToCorrelativos, 
   subscribeToCounters 
 } from '../services/correlativoService';
-import { ProgramacionResultado, UserProfile } from '../types';
+import { ProgramacionResultado, UserProfile, UserRole } from '../types';
 
 const YEAR = 2026;
 
@@ -66,7 +67,7 @@ const STEP_ORDER = ['cp', 'inf', 'ini'] as const;
 
 interface CorrelativosModuleProps {
   currentUser: UserProfile | null;
-  activeRole: 'admin' | 'tecnico';
+  activeRole: UserRole;
   tecnicoName: string;
   schedulesHistory?: ProgramacionResultado[];
   onPreloadFacilitadorForSchedule?: (nombre: string, ci: string, ciComp: string) => void;
@@ -79,6 +80,8 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
   schedulesHistory = [],
   onPreloadFacilitadorForSchedule
 }) => {
+  const isViewer = activeRole === 'viewer';
+
   // Real-time Firestore State
   const [records, setRecords] = useState<CorrelativoRecord[]>([]);
   const [counters, setCounters] = useState<CorrelativoCounters>(DEFAULT_COUNTERS);
@@ -210,6 +213,9 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Validate Flow before Generating
   const validateFlow = (): string | null => {
+    if (isViewer) {
+      return 'Su rol de Visualización no permite generar correlativos.';
+    }
     if (!facilitador.trim()) {
       return 'El nombre completo del facilitador es obligatorio.';
     }
@@ -251,6 +257,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Handle Generate
   const handleGenerate = async () => {
+    if (isViewer) return;
     setValidationError(null);
     const err = validateFlow();
     if (err) {
@@ -322,6 +329,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Handle Anulacion Confirmation
   const handleConfirmAnulacion = async () => {
+    if (isViewer) return;
     if (!anularModalRecord) return;
     if (!anularMotivo.trim()) {
       alert('Debe especificar un motivo de anulación obligatorio.');
@@ -387,6 +395,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Load pending process into form
   const handleLoadPending = (item: { ci: string; name: string; nextStep: 'cp' | 'inf' | 'ini' }) => {
+    if (isViewer) return;
     const parts = item.ci.split('-');
     setCiNum(parts[0] || '');
     setCiComp(parts[1] || '');
@@ -427,9 +436,20 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Read-only Notice for Viewer */}
+      {isViewer && (
+        <div className="bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-300 dark:border-zinc-700 p-3.5 rounded-lg flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
+          <Eye className="w-4 h-4 shrink-0" />
+          <span className="text-xs font-semibold">
+            Modo Solo Lectura — Puede consultar el historial de correlativos, pero no generar ni anular documentos.
+          </span>
+        </div>
+      )}
+
       {/* ------------------------------------------------------------------- */}
       {/* MAIN GENERATION FORM CARD                                           */}
       {/* ------------------------------------------------------------------- */}
+      {!isViewer && (
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
         <div className="p-4 md:p-5 border-b border-zinc-200 dark:border-[#333438] bg-zinc-50 dark:bg-[#1e1f21] flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -539,7 +559,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                     setValidationError(null);
                   }}
                   placeholder="Ej. 3436443"
-                  className="flex-1 px-3.5 py-2.5 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 dark:hover:border-zinc-500 rounded-lg text-sm font-mono text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-150"
+                  className="flex-1 px-3 py-2 bg-white dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-sm font-mono text-zinc-900 dark:text-white focus:outline-none focus:border-[#4573d2] transition-colors"
                 />
                 <input
                   type="text"
@@ -552,14 +572,14 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                   }}
                   placeholder="Comp (1A)"
                   title="Complemento SEGIP (si aplica)"
-                  className="w-28 px-3.5 py-2.5 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 dark:hover:border-zinc-500 rounded-lg text-sm font-mono text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-150 text-center"
+                  className="w-28 px-3 py-2 bg-white dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-sm font-mono text-zinc-900 dark:text-white focus:outline-none focus:border-[#4573d2] transition-colors text-center"
                 />
               </div>
             </div>
 
             {/* FACILITADOR FULL NAME */}
             <div className="md:col-span-7 space-y-1.5">
-              <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+              <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
                 Facilitador/a *
               </label>
               <input
@@ -571,17 +591,17 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                   setValidationError(null);
                 }}
                 placeholder="EJ. ZALLES PARI MARIA DEL PILAR"
-                className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] hover:border-zinc-400 dark:hover:border-zinc-500 rounded-lg text-sm font-medium text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-150 uppercase"
+                className="w-full px-3 py-2 bg-white dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-[#4573d2] transition-colors uppercase"
               />
             </div>
 
             {/* DOCUMENT TYPE SELECTION (3 STEPS) */}
             <div className="md:col-span-12 space-y-2">
-              <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center justify-between">
+              <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <span>Seleccionar Tipo de Documento *</span>
                   {ciProgress.nextStep && (
-                    <span className="text-[10px] font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                    <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                       Sugerido: Paso {STEP_ORDER.indexOf(ciProgress.nextStep) + 1}
                     </span>
                   )}
@@ -635,28 +655,28 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                           : isBlocked
                           ? 'bg-zinc-100/80 dark:bg-zinc-950/60 border-zinc-200 dark:border-zinc-800/80 opacity-70 cursor-not-allowed'
                           : isSelected
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md cursor-pointer'
-                          : 'bg-white dark:bg-[#1e1f21] border-zinc-200 dark:border-[#333438] text-zinc-700 dark:text-zinc-300 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 cursor-pointer'
+                          ? 'bg-[#4573d2] text-white border-[#4573d2] cursor-pointer'
+                          : 'bg-white dark:bg-[#1e1f21] border-zinc-200 dark:border-[#333438] text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 cursor-pointer'
                       }`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span
-                            className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
+                            className={`text-xs font-semibold uppercase px-2 py-0.5 rounded ${
                               isCompleted
-                                ? 'bg-emerald-700 text-white'
+                                ? 'bg-emerald-600 text-white'
                                 : isBlocked
                                 ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                                 : isSelected
-                                ? 'bg-white/20 text-white font-mono'
-                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
                             }`}
                           >
                             {dt.badge}
                           </span>
 
                           {isCompleted && (
-                            <span className="text-[10px] font-bold bg-emerald-200 dark:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 px-2 py-0.5 rounded flex items-center gap-1 uppercase">
+                            <span className="text-[10px] font-medium bg-emerald-200 dark:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200 px-2 py-0.5 rounded flex items-center gap-1 uppercase">
                               <CheckCircle2 className="w-3 h-3" />
                               Completado
                             </span>
@@ -670,13 +690,13 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                           )}
 
                           {!isCompleted && !isBlocked && isNextSugg && !isSelected && (
-                            <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded uppercase">
+                            <span className="text-[10px] font-medium bg-amber-100 text-amber-900 px-2 py-0.5 rounded uppercase">
                               Siguiente
                             </span>
                           )}
                         </div>
 
-                        <div className={`text-xs font-bold leading-tight ${isCompleted ? 'text-emerald-950 dark:text-emerald-100' : ''}`}>
+                        <div className={`text-xs font-semibold leading-tight ${isCompleted ? 'text-emerald-950 dark:text-emerald-100' : ''}`}>
                           {dt.label}
                         </div>
                       </div>
@@ -685,8 +705,8 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                       {isCompleted && activeRec ? (
                         <div className="mt-3 pt-2.5 border-t border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between gap-2">
                           <div>
-                            <div className="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-300">Código Generado:</div>
-                            <div className="text-xs font-mono font-bold text-emerald-950 dark:text-white select-all">{activeRec.codigoCompleto}</div>
+                            <div className="text-[10px] font-semibold uppercase text-emerald-800 dark:text-emerald-300">Código Generado:</div>
+                            <div className="text-xs font-mono font-semibold text-emerald-950 dark:text-white select-all">{activeRec.codigoCompleto}</div>
                           </div>
                           <button
                             type="button"
@@ -696,7 +716,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                               setStepCopiedId(activeRec.id);
                               setTimeout(() => setStepCopiedId(null), 2000);
                             }}
-                            className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer shadow-2xs"
+                            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
                           >
                             {stepCopiedId === activeRec.id ? (
                               <>
@@ -724,7 +744,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                           }`}
                         >
                           <span>Próximo Correlativo:</span>
-                          <span className="font-bold underline">{formattedNext}</span>
+                          <span className="font-semibold underline">{formattedNext}</span>
                         </div>
                       )}
                     </div>
@@ -735,14 +755,14 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
             {/* FIXED MOTIVO (READ ONLY) */}
             <div className="md:col-span-8 space-y-1.5">
-              <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+              <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
                 Motivo del Trámite
               </label>
               <input
                 type="text"
                 readOnly
                 value="CONTRATO FACILITADOR"
-                className="w-full px-3.5 py-2.5 bg-zinc-100 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded-lg text-sm font-bold text-zinc-700 dark:text-zinc-300 cursor-not-allowed uppercase"
+                className="w-full px-3 py-2 bg-zinc-100 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded text-sm font-medium text-zinc-700 dark:text-zinc-300 cursor-not-allowed uppercase"
               />
             </div>
 
@@ -752,7 +772,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                 type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="w-full h-[46px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-lg uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow-md disabled:opacity-50"
+                className="w-full h-[46px] bg-[#4573d2] hover:bg-[#3866c6] text-white font-medium text-sm rounded uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {isGenerating ? (
                   <>
@@ -862,6 +882,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
           )}
         </div>
       </div>
+      )}
 
       {/* ------------------------------------------------------------------- */}
       {/* PENDING PROCESSES PANEL (PROCESOS PENDIENTES POR CI)                */}
@@ -875,9 +896,11 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                 Procesos en Curso Pendientes ({pendingProcesses.length})
               </h3>
             </div>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              Haz clic en una tarjeta para retomar el siguiente paso
-            </span>
+            {!isViewer && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                Haz clic en una tarjeta para retomar el siguiente paso
+              </span>
+            )}
           </div>
 
           <div className="p-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -887,7 +910,9 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                 <div
                   key={item.ci}
                   onClick={() => handleLoadPending(item)}
-                  className="p-3 bg-zinc-50 hover:bg-zinc-100 dark:bg-[#1e1f21] dark:hover:bg-[#2d2e32] border border-zinc-200 dark:border-[#333438] rounded cursor-pointer transition-colors space-y-2 group"
+                  className={`p-3 bg-zinc-50 dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded transition-colors space-y-2 group ${
+                    isViewer ? 'cursor-default' : 'hover:bg-zinc-100 dark:hover:bg-[#2d2e32] cursor-pointer'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
@@ -904,10 +929,12 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
                   <div className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center justify-between pt-1.5 border-t border-zinc-200 dark:border-[#333438]">
                     <span>Avance: <strong>{item.doneSteps.length}/3 Pasos</strong></span>
-                    <span className="flex items-center gap-1 text-[#4573d2] font-medium">
-                      <span>Continuar</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
+                    {!isViewer && (
+                      <span className="flex items-center gap-1 text-[#4573d2] font-medium">
+                        <span>Continuar</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -1037,7 +1064,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                           )}
 
                           {/* Action button if active */}
-                          {!isAnulado && (
+                          {!isAnulado && !isViewer && (
                             <div className="pt-1.5 border-t border-zinc-100 dark:border-[#333438] flex items-center justify-between text-[11px]">
                               <span className="text-zinc-400">Gen: {item.usuarioGenerador}</span>
                               <button
@@ -1050,6 +1077,11 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
                               >
                                 Anular
                               </button>
+                            </div>
+                          )}
+                          {!isAnulado && isViewer && (
+                            <div className="pt-1.5 border-t border-zinc-100 dark:border-[#333438] text-[11px] text-zinc-400">
+                              Gen: {item.usuarioGenerador}
                             </div>
                           )}
                         </div>
@@ -1066,7 +1098,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* CANCELLATION MODAL WITH DEPENDENCY WARNING                          */}
       {/* ------------------------------------------------------------------- */}
-      {anularModalRecord && (
+      {anularModalRecord && !isViewer && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-150">
             <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
@@ -1129,7 +1161,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* PROMINENT SUCCESS CONFIRMATION MODAL                                */}
       {/* ------------------------------------------------------------------- */}
-      {successModalRecord && (
+      {successModalRecord && !isViewer && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl space-y-6 text-center animate-in zoom-in-95 duration-200">
             
