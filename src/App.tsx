@@ -51,6 +51,7 @@ export default function App() {
     }
   }, [currentUser]);
 
+  const isViewer = activeRole === 'viewer';
   const handleToggleActiveRole = () => {
     if (currentUser?.role !== 'admin') return;
     setActiveRole(prev => (prev === 'admin' ? 'tecnico' : 'admin'));
