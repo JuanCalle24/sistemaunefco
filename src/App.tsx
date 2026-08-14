@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from './lib/firebase';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { Header } from './components/Header';
 import { Sidebar, MainViewOption } from './components/Sidebar';
 import { Timeline } from './components/Timeline';
@@ -120,9 +118,8 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
-  // User Session Listener
+  // User Session Listener via Supabase Auth
   useEffect(() => {
-    // Check saved local user session first
     const savedUser = getLoggedInUser();
     if (savedUser && savedUser.status === 'active') {
       setCurrentUser(savedUser);
@@ -132,21 +129,38 @@ export default function App() {
       setAuthLoading(false);
     } else {
       clearLoggedInUser();
+      setCurrentUser(null);
       setAuthLoading(false);
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const userRef = doc(db, 'users', firebaseUser.uid);
-          const snap = await getDoc(userRef);
-          if (snap.exists()) {
-            const profile = { uid: firebaseUser.uid, ...snap.data() } as UserProfile;
+    if (isSupabaseConfigured) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          clearLoggedInUser();
+          setCurrentUser(null);
+        } else if (session?.user) {
+          try {
+            const { data: profileData } = await supabase
+              .from('usuarios')
+              .select('*')
+              .or(`auth_user_id.eq.${session.user.id},email.eq.${session.user.email}`)
+              .maybeSingle();
+
+            const profile: UserProfile = {
+              uid: session.user.id,
+              email: session.user.email || '',
+              displayName: profileData?.display_name || session.user.user_metadata?.display_name || session.user.email || 'Usuario',
+              role: (profileData?.role as UserRole) || 'tecnico',
+              status: profileData?.status || 'active',
+              cargo: profileData?.cargo || 'Técnico de Seguimiento Pedagógico',
+              lastLogin: new Date().toISOString(),
+            };
+
             if (profile.status === 'inactive') {
-              alert('Su cuenta ha sido desactivada por el Administrador Juan Carlos Calle Chávez.');
-              await signOut(auth);
+              await supabase.auth.signOut();
               clearLoggedInUser();
               setCurrentUser(null);
+              alert('Su cuenta ha sido desactivada.');
             } else {
               setCurrentUser(profile);
               saveLoggedInUser(profile);
@@ -154,14 +168,16 @@ export default function App() {
                 setTecnico(profile.displayName);
               }
             }
+          } catch (err) {
+            console.warn('[Supabase] Auth listener sync warning:', err);
           }
-        } catch (err) {
-          console.warn('Syncing auth state warning:', err);
         }
-      }
-    });
+      });
 
-    return () => unsubscribe();
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   // Ensure tecnico state stays synced with logged in currentUser
@@ -185,12 +201,15 @@ export default function App() {
     }
 
     try {
-      await signOut(auth);
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut();
+      }
     } catch (err) {
       // Ignore
     }
     clearLoggedInUser();
     setCurrentUser(null);
+    setTecnico('');
   };
 
   // History State
@@ -229,7 +248,7 @@ export default function App() {
   // Personal
   const [facilitador, setFacilitador] = useState<string>('');
   const [ci, setCi] = useState<string>('');
-  const [tecnico, setTecnico] = useState<string>(() => currentUser?.displayName || 'JUAN CARLOS CALLE CHAVEZ');
+  const [tecnico, setTecnico] = useState<string>(() => currentUser?.displayName || '');
 
   const [savedDocentes, setSavedDocentes] = useState<string[]>(() => {
     const local = localStorage.getItem('unefco_docentes');

@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { 
-  authenticateUser, 
-  seedDefaultTeamToFirestore 
-} from '../utils/authService';
+import { authenticateUser } from '../utils/authService';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { 
   Lock, 
   User, 
   Eye, 
   EyeOff, 
   AlertCircle, 
-  UserCheck
+  UserCheck,
+  Database
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -26,17 +25,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    seedDefaultTeamToFirestore();
-  }, []);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setInfoMessage(null);
 
     if (!identifier || !password) {
-      setError('Por favor ingrese su usuario y su contraseña asignada.');
+      setError('Por favor ingrese su correo o usuario y su contraseña.');
       return;
     }
 
@@ -48,7 +43,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
         onLoginSuccess(userProfile);
       }, 300);
     } catch (err: any) {
-      setError(err.message || 'Error al validar credenciales.');
+      setError(err.message || 'Error al autenticar en Supabase.');
     } finally {
       setLoading(false);
     }
@@ -63,19 +58,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
         {/* Header Title */}
         <div className="p-6 pb-2 text-left">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 tracking-wider uppercase">
-              UNEFCO La Paz
+            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 tracking-wider uppercase flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5 text-emerald-500" />
+              UNEFCO La Paz • Supabase
             </span>
             <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-medium">
-              Gestión Académica
+              Autenticación Supabase
             </span>
           </div>
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-white tracking-tight">
             Iniciar Sesión
           </h1>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            Acceso exclusivo validado contra la base de datos Supabase
+          </p>
         </div>
 
         <div className="p-6 pt-3">
+          {!isSupabaseConfigured && (
+            <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>
+                <strong>Supabase no configurado:</strong> Configure <code className="bg-amber-100 dark:bg-amber-900/60 px-1 rounded">VITE_SUPABASE_URL</code> y <code className="bg-amber-100 dark:bg-amber-900/60 px-1 rounded">VITE_SUPABASE_ANON_KEY</code> en la configuración (Secrets) para poder autenticar.
+              </span>
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
@@ -92,7 +100,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
 
           <form onSubmit={handleLogin} className="space-y-4">
             
-            {/* Minimalist Input Grid matching user reference image */}
+            {/* Input Grid */}
             <div className="border border-zinc-300 dark:border-[#3e3f44] rounded overflow-hidden divide-y divide-zinc-300 dark:divide-[#3e3f44]">
               {/* Username row */}
               <div className="flex items-center bg-white dark:bg-[#1e1f21]">
@@ -100,11 +108,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                   <User className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Nombre de usuario"
+                  placeholder="Correo electrónico (ej: usuario@unefco.edu.bo)"
                   className="w-full px-3 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
                 />
               </div>
@@ -119,7 +127,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Contraseña"
+                  placeholder="Contraseña de Supabase"
                   className="w-full pl-3 pr-10 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
                 />
                 <button
@@ -132,13 +140,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
               </div>
             </div>
 
-            {/* Asana Royal Blue Acceder Button */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-[#4573d2] hover:bg-[#3866c6] text-white font-medium text-sm py-2 px-4 rounded transition-colors cursor-pointer disabled:opacity-60"
             >
-              {loading ? 'Validando...' : 'Acceder'}
+              {loading ? 'Validando con Supabase...' : 'Acceder con Supabase'}
             </button>
           </form>
         </div>
@@ -146,5 +154,3 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
     </div>
   );
 };
-
-

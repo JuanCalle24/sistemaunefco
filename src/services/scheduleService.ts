@@ -1,27 +1,11 @@
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { db } from '../lib/firebase';
 import { collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { ProgramacionResultado, CursoProgramado } from '../types';
 
 const SCHEDULES_COLLECTION = 'schedules';
 
-// Helper to strip undefined values so Firestore setDoc does not throw unsupported field errors
-function cleanUndefined(obj: any): any {
-  if (obj === undefined) return null;
-  if (obj === null) return null;
-  if (Array.isArray(obj)) return obj.map(cleanUndefined);
-  if (typeof obj === 'object' && !(obj instanceof Date)) {
-    const cleaned: Record<string, any> = {};
-    for (const key of Object.keys(obj)) {
-      if (obj[key] !== undefined) {
-        cleaned[key] = cleanUndefined(obj[key]);
-      }
-    }
-    return cleaned;
-  }
-  return obj;
-}
-
-// Helper to safely convert Date objects to ISO strings for Firestore storage
+// Helper to safely serialize schedule for storage
 function serializeSchedule(schedule: ProgramacionResultado): Record<string, any> {
   const docId = schedule.idTransaccion || `TRANS-${Date.now()}`;
   
@@ -35,24 +19,35 @@ function serializeSchedule(schedule: ProgramacionResultado): Record<string, any>
     sesion3: asig.sesion3 instanceof Date ? asig.sesion3.toISOString() : asig.sesion3,
   }));
 
-  const payload = {
-    ...schedule,
-    idTransaccion: docId,
-    fechaInicioContrato: schedule.fechaInicioContrato instanceof Date 
-      ? schedule.fechaInicioContrato.toISOString() 
+  return {
+    id: docId,
+    id_transaccion: docId,
+    tecnico: schedule.tecnico || '',
+    rol_operador: schedule.rolOperador || 'tecnico',
+    facilitador: schedule.facilitador || '',
+    ci: schedule.ci || '',
+    ci_complemento: schedule.ciComplemento || '',
+    fecha_inicio_contrato: schedule.fechaInicioContrato instanceof Date 
+      ? schedule.fechaInicioContrato.toISOString().split('T')[0]
       : schedule.fechaInicioContrato,
-    limiteContrato: schedule.limiteContrato instanceof Date 
-      ? schedule.limiteContrato.toISOString() 
+    limite_contrato: schedule.limiteContrato instanceof Date 
+      ? schedule.limiteContrato.toISOString().split('T')[0]
       : schedule.limiteContrato,
-    fechaAnulacion: schedule.fechaAnulacion,
+    days_used: schedule.daysUsed || 0,
+    modo: schedule.modo || 'automatico',
+    hash_seguridad: schedule.hashSeguridad || '',
+    estado: schedule.estado || 'ACTIVO',
+    motivo_anulacion: schedule.motivoAnulacion || null,
+    fecha_anulacion: schedule.fechaAnulacion || null,
+    usuario_registro: schedule.usuarioRegistro || schedule.tecnico,
+    usuario_anulador: schedule.usuarioAnulador || null,
+    slots: schedule.slots || [],
     asignaciones: serializedAsignaciones,
-    updatedAt: new Date().toISOString()
+    updated_at: new Date().toISOString()
   };
-
-  return cleanUndefined(payload);
 }
 
-// Helper to convert Firestore JSON back to ProgramacionResultado with JS Date objects
+// Helper to convert DB JSON to ProgramacionResultado with Date objects
 export function deserializeSchedule(data: any): ProgramacionResultado {
   const parseDate = (val: any): Date => {
     if (!val) return new Date();
@@ -61,7 +56,8 @@ export function deserializeSchedule(data: any): ProgramacionResultado {
     return new Date(val);
   };
 
-  const asignaciones = (data.asignaciones || []).map((asig: any) => ({
+  const rawAsignaciones = data.asignaciones || [];
+  const asignaciones = (Array.isArray(rawAsignaciones) ? rawAsignaciones : []).map((asig: any) => ({
     ...asig,
     inicio: parseDate(asig.inicio),
     fin: parseDate(asig.fin),
@@ -72,29 +68,70 @@ export function deserializeSchedule(data: any): ProgramacionResultado {
   }));
 
   return {
-    ...data,
-    fechaInicioContrato: parseDate(data.fechaInicioContrato),
-    limiteContrato: parseDate(data.limiteContrato),
-    asignaciones
+    idTransaccion: data.id_transaccion || data.idTransaccion || data.id,
+    tecnico: data.tecnico || '',
+    rolOperador: data.rol_operador || data.rolOperador || 'tecnico',
+    facilitador: data.facilitador || '',
+    ci: data.ci || '',
+    ciComplemento: data.ci_complemento || data.ciComplemento || '',
+    fechaInicioContrato: parseDate(data.fecha_inicio_contrato || data.fechaInicioContrato),
+    limiteContrato: parseDate(data.limite_contrato || data.limiteContrato),
+    daysUsed: data.days_used || data.daysUsed || 0,
+    modo: data.modo || 'automatico',
+    hashSeguridad: data.hash_seguridad || data.hashSeguridad || '',
+    slots: data.slots || [],
+    asignaciones,
+    estado: data.estado || 'ACTIVO',
+    motivoAnulacion: data.motivo_anulacion || data.motivoAnulacion,
+    fechaAnulacion: data.fecha_anulacion || data.fechaAnulacion,
+    usuarioRegistro: data.usuario_registro || data.usuarioRegistro,
+    usuarioAnulador: data.usuario_anulador || data.usuarioAnulador
   };
 }
 
-// Save or update a schedule in Firestore
+// Save or update schedule in Supabase (with Firestore fallback)
 export async function saveScheduleToFirestore(schedule: ProgramacionResultado): Promise<void> {
+  const docId = schedule.idTransaccion || `TRANS-${Date.now()}`;
+  const payload = serializeSchedule(schedule);
+
+  // 1. Supabase save
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from('cronogramas')
+        .upsert(payload, { onConflict: 'id' });
+      if (error) throw error;
+      console.log(`[Supabase] Cronograma ${docId} guardado exitosamente.`);
+      return;
+    } catch (err) {
+      console.warn('[Supabase] Error al guardar cronograma en Supabase:', err);
+    }
+  }
+
+  // 2. Firestore fallback
   try {
-    const docId = schedule.idTransaccion || `TRANS-${Date.now()}`;
-    const payload = serializeSchedule(schedule);
     const docRef = doc(db, SCHEDULES_COLLECTION, docId);
-    await setDoc(docRef, payload, { merge: true });
+    await setDoc(docRef, { ...schedule, updatedAt: new Date().toISOString() }, { merge: true });
     console.log(`[Firestore] Cronograma ${docId} guardado exitosamente.`);
   } catch (error) {
     console.error('[Firestore] Error al guardar cronograma:', error);
-    // Keep working even if offline
   }
 }
 
-// Delete a single schedule document from Firestore
+// Delete a single schedule
 export async function deleteScheduleFromFirestore(docId: string): Promise<void> {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase.from('cronogramas').delete().eq('id', docId);
+      if (!error) {
+        console.log(`[Supabase] Cronograma ${docId} eliminado exitosamente.`);
+        return;
+      }
+    } catch (err) {
+      console.warn('[Supabase] Error eliminando cronograma:', err);
+    }
+  }
+
   try {
     const docRef = doc(db, SCHEDULES_COLLECTION, docId);
     await deleteDoc(docRef);
@@ -104,8 +141,20 @@ export async function deleteScheduleFromFirestore(docId: string): Promise<void> 
   }
 }
 
-// Clear all schedule documents from Firestore
+// Clear all schedules
 export async function clearAllSchedulesFromFirestore(): Promise<void> {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase.from('cronogramas').delete().neq('id', '___none___');
+      if (!error) {
+        console.log('[Supabase] Todo el historial de cronogramas ha sido eliminado.');
+        return;
+      }
+    } catch (err) {
+      console.warn('[Supabase] Error limpiando cronogramas:', err);
+    }
+  }
+
   try {
     const schedulesRef = collection(db, SCHEDULES_COLLECTION);
     const snapshot = await getDocs(schedulesRef);
@@ -117,20 +166,49 @@ export async function clearAllSchedulesFromFirestore(): Promise<void> {
   }
 }
 
-// Subscribe to real-time updates for all schedules (syncs across devices and sessions)
+// Subscribe to real-time updates for schedules
 export function subscribeToSchedules(onUpdate: (schedules: ProgramacionResultado[]) => void): () => void {
+  if (isSupabaseConfigured) {
+    const fetchSupabaseData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('cronogramas')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(100);
+        if (!error && data) {
+          onUpdate(data.map(deserializeSchedule));
+        }
+      } catch (e) {
+        console.warn('[Supabase] Fetch cronogramas failed:', e);
+      }
+    };
+
+    fetchSupabaseData();
+
+    const channel = supabase
+      .channel('public:cronogramas')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cronogramas' }, () => {
+        fetchSupabaseData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }
+
   try {
     const schedulesRef = collection(db, SCHEDULES_COLLECTION);
     const q = query(schedulesRef, orderBy('updatedAt', 'desc'), limit(50));
 
-    const unsubscribe = onSnapshot(
+    return onSnapshot(
       q,
       (snapshot) => {
         const items: ProgramacionResultado[] = [];
         snapshot.forEach((docSnap) => {
           try {
-            const data = docSnap.data();
-            items.push(deserializeSchedule(data));
+            items.push(deserializeSchedule(docSnap.data()));
           } catch (err) {
             console.error('[Firestore] Error deserializando documento:', err);
           }
@@ -141,8 +219,6 @@ export function subscribeToSchedules(onUpdate: (schedules: ProgramacionResultado
         console.error('[Firestore] Error en listener de cronogramas:', error);
       }
     );
-
-    return unsubscribe;
   } catch (err) {
     console.error('[Firestore] No se pudo iniciar suscripción:', err);
     return () => {};

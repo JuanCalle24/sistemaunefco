@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { UserProfile, UserRole, UserStatus } from '../types';
-import { OFFICIAL_TEAM_PRESETS, saveCustomUserLocal } from '../utils/authService';
 import { 
   X, 
   UserPlus, 
@@ -13,8 +11,7 @@ import {
   Search, 
   CheckCircle2, 
   AlertCircle,
-  Briefcase,
-  Key
+  Briefcase
 } from 'lucide-react';
 
 interface UserManagementModalProps {
@@ -36,48 +33,54 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('Unefco2026');
+  const [newPassword, setNewPassword] = useState('');
   const [newCargo, setNewCargo] = useState('Técnico de Seguimiento Pedagógico');
   const [newRole, setNewRole] = useState<UserRole>('tecnico');
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
-  // Subscribe to users collection in Firestore
-  useEffect(() => {
-    if (!isOpen) return;
-
+  // Cargar usuarios desde Supabase
+  const loadUsers = async () => {
     setLoadingUsers(true);
-    const unsubscribe = onSnapshot(
-      collection(db, 'users'),
-      (snapshot) => {
-        const map = new Map<string, UserProfile>();
+    if (!isSupabaseConfigured) {
+      setUsers([]);
+      setLoadingUsers(false);
+      return;
+    }
 
-        // Always seed initial team members in list
-        OFFICIAL_TEAM_PRESETS.forEach(item => map.set(item.uid, item));
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        snapshot.forEach((docSnap) => {
-          map.set(docSnap.id, { uid: docSnap.id, ...docSnap.data() } as UserProfile);
-        });
+      if (error) throw error;
 
-        const list = Array.from(map.values());
-        list.sort((a, b) => {
-          if (a.role === 'admin' && b.role !== 'admin') return -1;
-          if (a.role !== 'admin' && b.role === 'admin') return 1;
-          return a.displayName.localeCompare(b.displayName);
-        });
-
-        setUsers(list);
-        setLoadingUsers(false);
-      },
-      (err) => {
-        console.warn('Cargando lista base de usuarios:', err);
-        setUsers(OFFICIAL_TEAM_PRESETS);
-        setLoadingUsers(false);
+      if (data) {
+        const mapped: UserProfile[] = data.map((u: any) => ({
+          uid: u.id,
+          email: u.email,
+          displayName: u.display_name,
+          role: u.role as UserRole,
+          status: u.status as UserStatus,
+          cargo: u.cargo,
+          createdAt: u.created_at,
+          lastLogin: u.last_login
+        }));
+        setUsers(mapped);
       }
-    );
+    } catch (err: any) {
+      console.error('Error cargando usuarios de Supabase:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    if (isOpen) {
+      loadUsers();
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -90,11 +93,16 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
     const newStatus: UserStatus = targetUser.status === 'active' ? 'inactive' : 'active';
     try {
-      const userRef = doc(db, 'users', targetUser.uid);
-      await updateDoc(userRef, { status: newStatus });
-    } catch (err: any) {
-      // Local state fallback
+      if (isSupabaseConfigured) {
+        await supabase
+          .from('usuarios')
+          .update({ status: newStatus })
+          .eq('id', targetUser.uid);
+      }
       setUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, status: newStatus } : u));
+    } catch (err: any) {
+      console.error('Error al actualizar estado:', err);
+      alert(`Error al actualizar estado en Supabase: ${err.message}`);
     }
   };
 
@@ -106,10 +114,16 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
     const newRoleVal: UserRole = targetUser.role === 'admin' ? 'tecnico' : 'admin';
     try {
-      const userRef = doc(db, 'users', targetUser.uid);
-      await updateDoc(userRef, { role: newRoleVal });
-    } catch (err: any) {
+      if (isSupabaseConfigured) {
+        await supabase
+          .from('usuarios')
+          .update({ role: newRoleVal })
+          .eq('id', targetUser.uid);
+      }
       setUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, role: newRoleVal } : u));
+    } catch (err: any) {
+      console.error('Error al actualizar rol:', err);
+      alert(`Error al actualizar rol en Supabase: ${err.message}`);
     }
   };
 
@@ -118,47 +132,74 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     setFormError(null);
     setFormSuccess(null);
 
-    if (!newName.trim() || !newPassword.trim()) {
-      setFormError('Por favor complete el nombre y la contraseña.');
+    if (!newName.trim()) {
+      setFormError('Por favor complete el nombre completo del técnico.');
       return;
     }
 
     const formattedName = newName.trim().toUpperCase();
     const formattedEmail = newEmail.trim() || `${formattedName.toLowerCase().replace(/\s+/g, '.')}@unefco.edu.bo`;
-    const newUid = `user_tec_${Date.now()}`;
 
     setFormLoading(true);
 
     try {
-      const newUserProfile: UserProfile = {
-        uid: newUid,
-        email: formattedEmail,
-        displayName: formattedName,
-        role: newRole,
-        status: 'active',
-        cargo: newCargo.trim() || 'Técnico de Seguimiento Pedagógico UNEFCO La Paz',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
-      };
-
-      // 1. Save in Firestore
-      try {
-        await setDoc(doc(db, 'users', newUid), newUserProfile);
-      } catch (e) {
-        console.warn('Firestore write warning:', e);
+      if (!isSupabaseConfigured) {
+        throw new Error('Supabase no está configurado. Conecte VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
       }
 
-      // 2. Save in Local Auth Registry
-      saveCustomUserLocal(newUserProfile, newPassword.trim());
+      // 1. Si se especificó contraseña y correo, registrar en Supabase Auth
+      let authUserId: string | null = null;
+      if (newPassword.trim()) {
+        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+          email: formattedEmail,
+          password: newPassword.trim(),
+          options: {
+            data: { display_name: formattedName }
+          }
+        });
+        if (!signUpErr && signUpData.user) {
+          authUserId = signUpData.user.id;
+        }
+      }
 
-      setFormSuccess(`¡Técnico "${formattedName}" registrado exitosamente con la contraseña "${newPassword.trim()}"!`);
+      // 2. Guardar en la tabla `usuarios` de Supabase
+      const { data: inserted, error: insertErr } = await supabase
+        .from('usuarios')
+        .insert({
+          auth_user_id: authUserId,
+          email: formattedEmail,
+          display_name: formattedName,
+          role: newRole,
+          status: 'active',
+          cargo: newCargo.trim() || 'Técnico de Seguimiento Pedagógico UNEFCO La Paz',
+          created_at: new Date().toISOString(),
+          last_login: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (insertErr) throw insertErr;
+
+      const newUserProfile: UserProfile = {
+        uid: inserted.id,
+        email: inserted.email,
+        displayName: inserted.display_name,
+        role: inserted.role as UserRole,
+        status: inserted.status as UserStatus,
+        cargo: inserted.cargo,
+        createdAt: inserted.created_at,
+        lastLogin: inserted.last_login
+      };
+
+      setUsers(prev => [newUserProfile, ...prev]);
+      setFormSuccess(`¡Técnico "${formattedName}" registrado exitosamente en Supabase!`);
       setNewName('');
       setNewEmail('');
-      setNewPassword('Unefco2026');
+      setNewPassword('');
       setShowAddForm(false);
     } catch (err: any) {
       console.error('Error al registrar técnico:', err);
-      setFormError(`Error al registrar usuario: ${err.message}`);
+      setFormError(`Error al registrar en Supabase: ${err.message}`);
     } finally {
       setFormLoading(false);
     }
@@ -171,309 +212,303 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs animate-fade-in">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-[#1e1f21] border border-zinc-200 dark:border-[#333438] rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         
-        {/* Modal Header */}
-        <div className="p-4 bg-[#1e2330] text-white flex items-center justify-between border-b border-zinc-800">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white/10 border border-white/20 rounded flex items-center justify-center">
-              <Users className="w-4 h-4 text-zinc-200" />
+        {/* Header */}
+        <div className="p-4 border-b border-zinc-200 dark:border-[#333438] flex items-center justify-between bg-zinc-50 dark:bg-[#252628]">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-blue-100 dark:bg-blue-950/60 rounded-lg text-blue-600 dark:text-blue-400">
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
-                UNEFCO LA PAZ • MÓDULO ADMINISTRATIVO
-              </span>
-              <h2 className="text-base font-semibold">
-                Gestión de Técnicos de Seguimiento
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-white">
+                Gestión de Usuarios y Técnicos (Supabase)
               </h2>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Administración de cuentas con acceso al sistema en base de datos Supabase
+              </p>
             </div>
           </div>
+          
           <button
             onClick={onClose}
-            className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+            className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-md hover:bg-zinc-200 dark:hover:bg-[#333438] transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Action Toolbar */}
-        <div className="p-3 border-b border-zinc-200 dark:border-[#333438] bg-zinc-50 dark:bg-[#1e1f21] flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre o correo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-[#4573d2]"
-            />
+        {/* Content */}
+        <div className="p-5 overflow-y-auto flex-1 space-y-4">
+          
+          {/* Top Bar: Search + Add Button */}
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre, correo o cargo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-zinc-50 dark:bg-[#252628] border border-zinc-300 dark:border-[#3e3f44] rounded-md text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                setShowAddForm(!showAddForm);
+                setFormError(null);
+                setFormSuccess(null);
+              }}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors shadow-xs cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>{showAddForm ? 'Cancelar Registro' : 'Registrar Nuevo Técnico'}</span>
+            </button>
           </div>
 
-          <button
-            onClick={() => {
-              setShowAddForm(!showAddForm);
-              setFormError(null);
-              setFormSuccess(null);
-            }}
-            className="w-full sm:w-auto bg-[#4573d2] hover:bg-[#3866c6] text-white px-3 py-1.5 rounded text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-colors"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>{showAddForm ? 'Ocultar Formulario' : 'Registrar Nuevo Técnico'}</span>
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <div className="p-5 overflow-y-auto flex-1 space-y-5">
-
-          {/* Form to add new technician */}
+          {/* Add User Form Drawer */}
           {showAddForm && (
-            <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 animate-fade-in shadow-xs">
-              <h3 className="text-sm font-bold text-emerald-950 dark:text-emerald-200 mb-3 flex items-center gap-2 font-display">
-                <UserPlus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Registrar Nuevo Técnico de Seguimiento UNEFCO</span>
-              </h3>
+            <form onSubmit={handleCreateUser} className="p-4 bg-zinc-50 dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg space-y-3 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-[#333438]">
+                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4 text-blue-500" />
+                  Nuevo Usuario para Supabase
+                </span>
+                <span className="text-[10px] bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-mono">
+                  Base de Datos Supabase
+                </span>
+              </div>
 
               {formError && (
-                <div className="mb-3 p-2.5 bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 rounded-xl text-xs flex items-center gap-2">
+                <div className="p-2.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/60 rounded text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                   <span>{formError}</span>
                 </div>
               )}
 
-              <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
-                    Nombre Completo del Técnico
+                  <label className="block text-[11px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Nombre Completo del Técnico *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ej. LIC. MARIO MAMANI CONDORI"
+                    placeholder="Ej. JUAN PEREZ LOPEZ"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs font-medium"
+                    className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
+                  <label className="block text-[11px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                     Correo Electrónico (Opcional)
                   </label>
                   <input
                     type="email"
-                    placeholder="mario.mamani@unefco.edu.bo"
+                    placeholder="ejemplo@unefco.edu.bo"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs"
+                    className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
-                    Contraseña de Acceso
+                  <label className="block text-[11px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Contraseña para Supabase Auth
                   </label>
-                  <div className="relative">
-                    <Key className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <input
-                      type="text"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs font-mono font-bold"
-                    />
-                  </div>
+                  <input
+                    type="password"
+                    placeholder="Contraseña segura"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1 font-display">
-                    Cargo / Función
+                  <label className="block text-[11px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Cargo o Función
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej. Técnico de Seguimiento Pedagógico"
+                    placeholder="Técnico de Seguimiento Pedagógico"
                     value={newCargo}
                     onChange={(e) => setNewCargo(e.target.value)}
-                    className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs"
+                    className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
-                <div className="sm:col-span-2 flex items-center justify-between pt-2 border-t border-emerald-200/60 dark:border-emerald-800/60">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 font-display">Rol asignado:</label>
-                    <label className="inline-flex items-center gap-1.5 text-xs text-zinc-800 dark:text-zinc-200 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="userRole"
-                        value="tecnico"
-                        checked={newRole === 'tecnico'}
-                        onChange={() => setNewRole('tecnico')}
-                        className="text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span>Técnico de Seguimiento</span>
-                    </label>
-                    <label className="inline-flex items-center gap-1.5 text-xs text-zinc-800 dark:text-zinc-200 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="userRole"
-                        value="admin"
-                        checked={newRole === 'admin'}
-                        onChange={() => setNewRole('admin')}
-                        className="text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span>Administrador General</span>
-                    </label>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={formLoading}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-xl transition-colors cursor-pointer shadow-xs disabled:opacity-50 font-display"
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Rol en la Plataforma
+                  </label>
+                  <select
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value as UserRole)}
+                    className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-[#1e1f21] border border-zinc-300 dark:border-[#3e3f44] rounded text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    {formLoading ? 'Guardando...' : 'Guardar y Habilitar Técnico'}
-                  </button>
+                    <option value="tecnico">Técnico (Gestión de sus propios cronogramas)</option>
+                    <option value="admin">Administrador General (Acceso Total)</option>
+                  </select>
                 </div>
-              </form>
-            </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="px-3 py-1 text-xs text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-[#333438] rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-4 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:opacity-60"
+                >
+                  {formLoading ? 'Guardando en Supabase...' : 'Guardar en Supabase'}
+                </button>
+              </div>
+            </form>
           )}
 
           {formSuccess && (
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-xl text-xs flex items-center gap-2 font-medium">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/60 rounded text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{formSuccess}</span>
             </div>
           )}
 
           {/* User List Table */}
-          <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-2xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[11px] font-bold uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-700 font-display">
-                    <th className="py-2.5 px-4">Técnico / Usuario</th>
-                    <th className="py-2.5 px-4">Correo</th>
-                    <th className="py-2.5 px-4">Cargo</th>
-                    <th className="py-2.5 px-4 text-center">Rol</th>
-                    <th className="py-2.5 px-4 text-center">Estado</th>
-                    <th className="py-2.5 px-4 text-right">Acciones</th>
+          <div className="border border-zinc-200 dark:border-[#333438] rounded-lg overflow-hidden">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-zinc-100 dark:bg-[#252628] border-b border-zinc-200 dark:border-[#333438] text-zinc-600 dark:text-zinc-400 font-medium">
+                  <th className="py-2.5 px-3">Técnico / Usuario</th>
+                  <th className="py-2.5 px-3">Cargo</th>
+                  <th className="py-2.5 px-3">Rol</th>
+                  <th className="py-2.5 px-3">Estado</th>
+                  <th className="py-2.5 px-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200 dark:divide-[#333438] bg-white dark:bg-[#1e1f21]">
+                {loadingUsers ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-zinc-400">
+                      Cargando usuarios desde Supabase...
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs text-zinc-800 dark:text-zinc-200">
-                  {loadingUsers ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-zinc-500">
-                        Cargando personal de seguimiento...
-                      </td>
-                    </tr>
-                  ) : filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-zinc-500">
-                        No se encontraron técnicos registrados.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((u) => {
-                      const isSelf = u.uid === currentUser.uid;
-                      const isActive = u.status === 'active';
-                      const isAdminRole = u.role === 'admin';
+                ) : filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-zinc-400">
+                      No se encontraron usuarios en Supabase.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((user) => {
+                    const isCurrent = user.uid === currentUser.uid;
+                    const isActive = user.status === 'active';
+                    const isAdmin = user.role === 'admin';
 
-                      return (
-                        <tr key={u.uid} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="font-bold flex items-center gap-2">
-                              <span>{u.displayName}</span>
-                              {isSelf && (
-                                <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] px-1.5 py-0.5 rounded-md font-bold font-display">
-                                  Tú (Admin)
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-zinc-400 block font-mono">ID: {u.uid}</span>
-                          </td>
-
-                          <td className="py-3 px-4 font-mono text-zinc-600 dark:text-zinc-300 text-[11px]">
-                            {u.email}
-                          </td>
-
-                          <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400 text-[11px]">
-                            {u.cargo || 'Técnico de Seguimiento'}
-                          </td>
-
-                          <td className="py-3 px-4 text-center">
-                            <button
-                              onClick={() => !isSelf && handleToggleRole(u)}
-                              disabled={isSelf}
-                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider cursor-pointer font-display ${
-                                isAdminRole 
-                                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300' 
-                                  : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300'
-                              } ${isSelf ? 'opacity-80 cursor-default' : 'hover:opacity-80'}`}
-                              title={isSelf ? 'Es tu propia cuenta' : 'Hacer clic para cambiar rol'}
-                            >
-                              {isAdminRole ? <ShieldCheck className="w-3 h-3 text-amber-600" /> : <Briefcase className="w-3 h-3 text-zinc-500" />}
-                              <span>{isAdminRole ? 'ADMIN' : 'TÉCNICO'}</span>
-                            </button>
-                          </td>
-
-                          <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-display ${
-                              isActive 
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
-                                : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
-                            }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                              <span>{isActive ? 'ACTIVO' : 'INACTIVO'}</span>
-                            </span>
-                          </td>
-
-                          <td className="py-3 px-4 text-right">
-                            {!isSelf ? (
-                              <button
-                                onClick={() => handleToggleStatus(u)}
-                                className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1 font-display ${
-                                  isActive 
-                                    ? 'bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 border border-red-200' 
-                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-200'
-                                }`}
-                              >
-                                {isActive ? (
-                                  <>
-                                    <UserX className="w-3.5 h-3.5" />
-                                    <span>Desactivar</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserCheck className="w-3.5 h-3.5" />
-                                    <span>Activar</span>
-                                  </>
-                                )}
-                              </button>
-                            ) : (
-                              <span className="text-[10px] text-zinc-400 italic">Cuenta Principal</span>
+                    return (
+                      <tr key={user.uid} className="hover:bg-zinc-50 dark:hover:bg-[#252628]/60 transition-colors">
+                        <td className="py-2.5 px-3">
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                            {user.displayName}
+                            {isCurrent && (
+                              <span className="text-[9px] bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 px-1.5 py-0.2 rounded font-medium">
+                                Tú
+                              </span>
                             )}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                          </div>
+                          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
+                            {user.email}
+                          </div>
+                        </td>
 
+                        <td className="py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
+                          <div className="flex items-center gap-1">
+                            <Briefcase className="w-3 h-3 text-zinc-400 shrink-0" />
+                            <span>{user.cargo || 'Técnico de Seguimiento'}</span>
+                          </div>
+                        </td>
+
+                        <td className="py-2.5 px-3">
+                          <button
+                            onClick={() => handleToggleRole(user)}
+                            disabled={isCurrent}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                              isAdmin
+                                ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                                : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                            } ${isCurrent ? 'cursor-default' : 'hover:opacity-80 cursor-pointer'}`}
+                            title={isCurrent ? 'Tu propio rol' : 'Hacer clic para cambiar rol'}
+                          >
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>{isAdmin ? 'Administrador' : 'Técnico'}</span>
+                          </button>
+                        </td>
+
+                        <td className="py-2.5 px-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${
+                            isActive
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                              : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                            {isActive ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </td>
+
+                        <td className="py-2.5 px-3 text-right">
+                          <button
+                            onClick={() => handleToggleStatus(user)}
+                            disabled={isCurrent}
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                              isActive
+                                ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40'
+                                : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                            } ${isCurrent ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                            title={isCurrent ? 'No puedes desactivar tu cuenta' : isActive ? 'Desactivar acceso' : 'Activar acceso'}
+                          >
+                            {isActive ? (
+                              <>
+                                <UserX className="w-3.5 h-3.5" />
+                                <span>Desactivar</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="w-3.5 h-3.5" />
+                                <span>Reactivar</span>
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between text-xs text-zinc-500">
-          <span>Personal Registrado: <strong>{users.length} técnicos</strong></span>
+        {/* Footer */}
+        <div className="p-3 bg-zinc-50 dark:bg-[#252628] border-t border-zinc-200 dark:border-[#333438] flex items-center justify-between">
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            Total técnicos registrados en Supabase: {users.length}
+          </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-colors font-display"
+            className="px-3 py-1.5 text-xs font-medium bg-zinc-200 dark:bg-[#333438] text-zinc-800 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-[#3e3f44] rounded transition-colors"
           >
             Cerrar
           </button>
         </div>
-
       </div>
     </div>
   );
