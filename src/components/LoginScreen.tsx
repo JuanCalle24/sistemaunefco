@@ -8,8 +8,7 @@ import {
   Eye, 
   EyeOff, 
   AlertCircle, 
-  UserCheck,
-  Database
+  UserCheck
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -30,8 +29,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
     setError(null);
     setInfoMessage(null);
 
-    if (!identifier || !password) {
-      setError('Por favor ingrese su correo o usuario y su contraseña.');
+    if (!identifier.trim() || !password) {
+      setError('Por favor ingrese su usuario y contraseña.');
       return;
     }
 
@@ -43,7 +42,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
         onLoginSuccess(userProfile);
       }, 300);
     } catch (err: any) {
-      setError(err.message || 'Error al autenticar en Supabase.');
+      setError(err.message || 'Error al iniciar sesión.');
     } finally {
       setLoading(false);
     }
@@ -56,30 +55,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
       <div className="w-full max-w-md bg-white dark:bg-[#252628] border border-zinc-200 dark:border-[#333438] rounded-lg shadow-xs overflow-hidden">
         
         {/* Header Title */}
-        <div className="p-6 pb-2 text-left">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 tracking-wider uppercase flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5 text-emerald-500" />
-              UNEFCO La Paz • Supabase
-            </span>
-            <span className="text-[10px] bg-zinc-100 dark:bg-[#2d2e32] text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-[#3a3b40] font-medium">
-              Autenticación Supabase
+        <div className="p-6 pb-3 text-left">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 tracking-wider uppercase">
+              UNEFCO La Paz
             </span>
           </div>
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-white tracking-tight">
             Iniciar Sesión
           </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Acceso exclusivo validado contra la base de datos Supabase
-          </p>
         </div>
 
-        <div className="p-6 pt-3">
+        <div className="p-6 pt-2">
           {!isSupabaseConfigured && (
             <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>
-                <strong>Supabase no configurado:</strong> Configure <code className="bg-amber-100 dark:bg-amber-900/60 px-1 rounded">VITE_SUPABASE_URL</code> y <code className="bg-amber-100 dark:bg-amber-900/60 px-1 rounded">VITE_SUPABASE_ANON_KEY</code> en la configuración (Secrets) para poder autenticar.
+                Configure <code className="bg-amber-100 dark:bg-amber-900/60 px-1 rounded">VITE_SUPABASE_URL</code> y <code className="bg-amber-100 dark:bg-amber-900/60 px-1 rounded">VITE_SUPABASE_ANON_KEY</code> en la configuración (Secrets) para habilitar el acceso.
               </span>
             </div>
           )}
@@ -102,22 +94,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
             
             {/* Input Grid */}
             <div className="border border-zinc-300 dark:border-[#3e3f44] rounded overflow-hidden divide-y divide-zinc-300 dark:divide-[#3e3f44]">
-              {/* Username row */}
+              {/* Usuario row */}
               <div className="flex items-center bg-white dark:bg-[#1e1f21]">
                 <div className="w-12 h-11 bg-zinc-100 dark:bg-[#2d2e32] border-r border-zinc-300 dark:border-[#3e3f44] flex items-center justify-center shrink-0">
                   <User className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Correo electrónico (ej: usuario@unefco.edu.bo)"
-                  className="w-full px-3 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
+                  placeholder=""
+                  className="w-full px-3 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none"
                 />
               </div>
 
-              {/* Password row */}
+              {/* Contraseña row */}
               <div className="flex items-center bg-white dark:bg-[#1e1f21] relative">
                 <div className="w-12 h-11 bg-zinc-100 dark:bg-[#2d2e32] border-r border-zinc-300 dark:border-[#3e3f44] flex items-center justify-center shrink-0">
                   <Lock className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
@@ -127,8 +119,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Contraseña de Supabase"
-                  className="w-full pl-3 pr-10 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
+                  placeholder=""
+                  className="w-full pl-3 pr-10 py-2.5 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none"
                 />
                 <button
                   type="button"
@@ -146,7 +138,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, isDark
               disabled={loading}
               className="w-full bg-[#4573d2] hover:bg-[#3866c6] text-white font-medium text-sm py-2 px-4 rounded transition-colors cursor-pointer disabled:opacity-60"
             >
-              {loading ? 'Validando con Supabase...' : 'Acceder con Supabase'}
+              {loading ? 'Iniciando sesión...' : 'Ingresar al Sistema'}
             </button>
           </form>
         </div>

@@ -4,39 +4,58 @@ import { UserProfile, UserRole } from '../types';
 const STORAGE_KEY_USER = 'unefco_supabase_session_user';
 
 /**
- * Autenticación EXCLUSIVA y ESTRICTA con Supabase.
- * - Requiere que VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY estén configuradas en Secrets.
+ * Autenticación con Supabase.
+ * - Soporta ingreso con correo electrónico o nombre de usuario (ej: "carlos", "juan.perez", etc.).
  * - Valida obligatoriamente usuario y contraseña contra Supabase Auth.
- * - No existen usuarios de prueba, ni bypasses, ni contraseñas locales.
  */
 export const authenticateUser = async (
   inputIdentifier: string,
   inputPassword: string
 ): Promise<UserProfile> => {
-  const cleanId = inputIdentifier.trim().toLowerCase();
+  const cleanId = inputIdentifier.trim();
 
   if (!cleanId || !inputPassword) {
-    throw new Error('Ingrese su correo electrónico y su contraseña.');
+    throw new Error('Ingrese su usuario y contraseña.');
   }
 
   if (!isSupabaseConfigured) {
     throw new Error(
-      'Supabase no está conectado. Debe configurar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en los Secrets del proyecto.'
+      'El servicio de autenticación no está configurado. Por favor contacte al administrador.'
     );
   }
 
-  // 1. Iniciar sesión formalmente a través de Supabase Auth
+  // Resolver email: si el usuario no incluyó "@", buscar en la tabla usuarios o formatear como correo institucional
+  let emailToAuth = cleanId;
+  if (!cleanId.includes('@')) {
+    try {
+      const { data: matchedUser } = await supabase
+        .from('usuarios')
+        .select('email')
+        .ilike('display_name', `%${cleanId}%`)
+        .limit(1)
+        .maybeSingle();
+
+      if (matchedUser?.email) {
+        emailToAuth = matchedUser.email;
+      } else {
+        emailToAuth = `${cleanId.toLowerCase()}@unefco.edu.bo`;
+      }
+    } catch {
+      emailToAuth = `${cleanId.toLowerCase()}@unefco.edu.bo`;
+    }
+  }
+
+  // 1. Iniciar sesión a través de Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: cleanId,
+    email: emailToAuth.toLowerCase(),
     password: inputPassword,
   });
 
   if (authError || !authData.user) {
-    // Si falla Supabase Auth, denegar acceso inmediatamente
     throw new Error(
       authError?.message === 'Invalid login credentials'
-        ? 'Credenciales inválidas en Supabase. Verifique su correo y contraseña.'
-        : `Error de autenticación Supabase: ${authError?.message || 'Usuario no autorizado'}`
+        ? 'Usuario o contraseña incorrectos.'
+        : `Error de autenticación: ${authError?.message || 'Usuario no autorizado'}`
     );
   }
 
@@ -48,12 +67,12 @@ export const authenticateUser = async (
     .maybeSingle();
 
   if (profileErr) {
-    console.warn('[Supabase] No se pudo obtener perfil de usuarios:', profileErr);
+    console.warn('Perfil warning:', profileErr);
   }
 
   const profile: UserProfile = {
     uid: authData.user.id,
-    email: authData.user.email || cleanId,
+    email: authData.user.email || emailToAuth,
     displayName: profileData?.display_name || authData.user.user_metadata?.display_name || authData.user.email || 'Usuario',
     role: (profileData?.role as UserRole) || 'tecnico',
     status: profileData?.status || 'active',
@@ -63,7 +82,7 @@ export const authenticateUser = async (
 
   if (profile.status === 'inactive') {
     await supabase.auth.signOut();
-    throw new Error('Su cuenta ha sido desactivada por el Administrador en Supabase.');
+    throw new Error('Su cuenta ha sido desactivada.');
   }
 
   // Actualizar último login en tabla usuarios
@@ -85,9 +104,7 @@ export const saveLoggedInUser = (user: UserProfile) => {
 
 export const getLoggedInUser = (): UserProfile | null => {
   try {
-    // Limpiar claves legadas de sesiones anteriores de Firebase/Locales
     localStorage.removeItem('unefco_logged_in_user');
-    
     const raw = localStorage.getItem(STORAGE_KEY_USER);
     return raw ? JSON.parse(raw) : null;
   } catch {

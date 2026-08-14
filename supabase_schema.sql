@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SISTEMA DE CRONOGRAMAS UNEFCO - SUPABASE SCHEMA (POSTGRESQL)
+-- SISTEMA DE CRONOGRAMAS UNEFCO - SUPABASE SCHEMA (POSTGRESQL) - PRODUCCIÓN LIMPIA
 -- ==============================================================================
 
 -- 1. EXTENSIONES
@@ -22,20 +22,22 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
 CREATE TABLE IF NOT EXISTS public.cronogramas (
     id TEXT PRIMARY KEY, -- ID de transacción e.g. TRANS-1718290000000
     id_transaccion TEXT NOT NULL,
-    sede TEXT NOT NULL,
     tecnico TEXT NOT NULL,
     rol_operador TEXT,
-    coordinador TEXT,
     facilitador TEXT NOT NULL,
     ci TEXT NOT NULL,
-    ci_completa TEXT,
-    celular TEXT,
+    ci_complemento TEXT,
     fecha_inicio_contrato DATE NOT NULL,
     limite_contrato DATE NOT NULL,
-    duracion_contrato TEXT,
+    days_used INTEGER DEFAULT 0,
+    modo TEXT DEFAULT 'automatico',
+    hash_seguridad TEXT,
     estado TEXT NOT NULL DEFAULT 'ACTIVO' CHECK (estado IN ('ACTIVO', 'ANULADO')),
     motivo_anulacion TEXT,
     fecha_anulacion TIMESTAMPTZ,
+    usuario_registro TEXT,
+    usuario_anulador TEXT,
+    slots JSONB DEFAULT '[]'::jsonb,
     asignaciones JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -87,10 +89,10 @@ CREATE TABLE IF NOT EXISTS public.facilitadores (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. INSERTAR REGISTRO INICIAL DE CONTADORES
+-- 7. REINICIO TOTAL DE CONTADORES
 INSERT INTO public.correlativo_contadores (id, cp, inf, ini)
 VALUES ('correlativo_counters_2026', 0, 0, 0)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET cp = 0, inf = 0, ini = 0, updated_at = NOW();
 
 -- 8. HABILITAR ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
@@ -100,8 +102,21 @@ ALTER TABLE public.correlativo_contadores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.facilitadores ENABLE ROW LEVEL SECURITY;
 
 -- 9. POLÍTICAS DE ACCESO PÚBLICO / ANON PARA PERMITIR OPERACIONES DE LA APP
+DROP POLICY IF EXISTS "Permitir lectura y escritura publica anonima a usuarios" ON public.usuarios;
+DROP POLICY IF EXISTS "Permitir lectura y escritura publica anonima a cronogramas" ON public.cronogramas;
+DROP POLICY IF EXISTS "Permitir lectura y escritura publica anonima a correlativos" ON public.correlativos;
+DROP POLICY IF EXISTS "Permitir lectura y escritura publica anonima a contadores" ON public.correlativo_contadores;
+DROP POLICY IF EXISTS "Permitir lectura y escritura publica anonima a facilitadores" ON public.facilitadores;
+
 CREATE POLICY "Permitir lectura y escritura publica anonima a usuarios" ON public.usuarios FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Permitir lectura y escritura publica anonima a cronogramas" ON public.cronogramas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Permitir lectura y escritura publica anonima a correlativos" ON public.correlativos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Permitir lectura y escritura publica anonima a contadores" ON public.correlativo_contadores FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Permitir lectura y escritura publica anonima a facilitadores" ON public.facilitadores FOR ALL USING (true) WITH CHECK (true);
+
+-- ==============================================================================
+-- SCRIPT RÁPIDO DE VACIADO / PURGA TOTAL (EJECUTAR SI YA TENÍAS DATOS DE PRUEBA):
+-- ==============================================================================
+-- TRUNCATE TABLE public.cronogramas;
+-- TRUNCATE TABLE public.correlativos;
+-- UPDATE public.correlativo_contadores SET cp = 0, inf = 0, ini = 0 WHERE id = 'correlativo_counters_2026';

@@ -252,12 +252,12 @@ export default function App() {
 
   const [savedDocentes, setSavedDocentes] = useState<string[]>(() => {
     const local = localStorage.getItem('unefco_docentes');
-    return local ? JSON.parse(local) : ['Lic. Juan Carlos Calle', 'M.Sc. Paola Cadena', 'Ph.D. Marcelo Morales', 'Ing. Gonzalo Fernández'];
+    return local ? JSON.parse(local) : [];
   });
 
   const [savedCoordinadores, setSavedCoordinadores] = useState<string[]>(() => {
     const local = localStorage.getItem('unefco_coordinadores');
-    return local ? JSON.parse(local) : ['Juan Carlos Calle', 'Paola Cadena', 'Marcelo Morales'];
+    return local ? JSON.parse(local) : [];
   });
 
   const [feriadosLocales, setFeriadosLocales] = useState<string[]>(() => {
