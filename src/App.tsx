@@ -590,6 +590,7 @@ export default function App() {
   const handleGenerar = () => {
     if (isViewer) return;
     if (modo === 'automatico') {
+      
       triggerCalculationAuto();
     } else {
       triggerCalculationManual();
