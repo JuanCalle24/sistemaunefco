@@ -820,8 +820,7 @@ export default function App() {
         onOpenUserManagement={() => setIsUserMgmtOpen(true)}
         onSignOut={handleSignOut}
         activeRole={activeRole}
-        const isViewer = activeRole === 'viewer';
-      />
+        />
 
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
