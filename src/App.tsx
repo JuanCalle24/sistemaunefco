@@ -985,6 +985,7 @@ export default function App() {
               onGuardarSeguimiento={() => programacionResult && saveToHistory(programacionResult)}
               onGenerarPDF={handleGeneratePDF}
               onCompartir={() => setIsShareOpen(true)}
+              isViewer={isViewer}
             />
           )}
 
