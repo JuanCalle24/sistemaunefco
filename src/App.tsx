@@ -960,6 +960,7 @@ export default function App() {
               errorMessage={errorMessage}
               warnings={warnings}
               currentUser={currentUser}
+              isViewer={isViewer}
             />
           )}
 
