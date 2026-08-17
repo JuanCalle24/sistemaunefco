@@ -1,97 +1,67 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { UserProfile, UserRole } from '../types';
 
 const STORAGE_KEY_USER = 'unefco_supabase_session_user';
 
 /**
- * Autenticación con Supabase.
- * - Soporta ingreso con correo electrónico o nombre de usuario (ej: "carlos", "juan.perez", etc.).
- * - Valida obligatoriamente usuario y contraseña contra Supabase Auth.
+ * Autenticación con Supabase usando correo sintético (@unefco.local)
+ * y consulta de perfil en tabla public.users.
  */
 export const authenticateUser = async (
   inputIdentifier: string,
   inputPassword: string
 ): Promise<UserProfile> => {
-  const cleanId = inputIdentifier.trim();
+  const cleanUser = inputIdentifier.trim().toLowerCase();
 
-  if (!cleanId || !inputPassword) {
-    throw new Error('Ingrese su usuario y contraseña.');
+  if (!cleanUser || !inputPassword) {
+    throw new Error('Usuario o contraseña incorrectos');
   }
 
-  if (!isSupabaseConfigured) {
-    throw new Error(
-      'El servicio de autenticación no está configurado. Por favor contacte al administrador.'
-    );
-  }
+  // 1. Armar correo sintético agregando @unefco.local
+  const email = cleanUser.includes('@') ? cleanUser : `${cleanUser}@unefco.local`;
 
-  // Resolver email: si el usuario no incluyó "@", buscar en la tabla usuarios o formatear como correo institucional
-  let emailToAuth = cleanId;
-  if (!cleanId.includes('@')) {
-    try {
-      const { data: matchedUser } = await supabase
-        .from('usuarios')
-        .select('email')
-        .ilike('display_name', `%${cleanId}%`)
-        .limit(1)
-        .maybeSingle();
-
-      if (matchedUser?.email) {
-        emailToAuth = matchedUser.email;
-      } else {
-        emailToAuth = `${cleanId.toLowerCase()}@unefco.edu.bo`;
-      }
-    } catch {
-      emailToAuth = `${cleanId.toLowerCase()}@unefco.edu.bo`;
-    }
-  }
-
-  // 1. Iniciar sesión a través de Supabase Auth
+  // 2. Llamar a supabase.auth.signInWithPassword({ email, password })
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: emailToAuth.toLowerCase(),
+    email,
     password: inputPassword,
   });
 
+  // 4. Si el login falla, mostrar mensaje genérico
   if (authError || !authData.user) {
-    throw new Error(
-      authError?.message === 'Invalid login credentials'
-        ? 'Usuario o contraseña incorrectos.'
-        : `Error de autenticación: ${authError?.message || 'Usuario no autorizado'}`
-    );
+    throw new Error('Usuario o contraseña incorrectos');
   }
 
-  // 2. Obtener rol y perfil desde la tabla `usuarios` en Supabase
-  const { data: profileData, error: profileErr } = await supabase
-    .from('usuarios')
-    .select('*')
-    .or(`auth_user_id.eq.${authData.user.id},email.eq.${authData.user.email}`)
-    .maybeSingle();
+  // 3. Si el login es exitoso, buscar perfil en public.users
+  let nombreCompleto = authData.user.user_metadata?.display_name || cleanUser;
+  let userRole: UserRole = 'tecnico';
 
-  if (profileErr) {
-    console.warn('Perfil warning:', profileErr);
+  try {
+    const { data: userData } = await supabase
+      .from('users')
+      .select('nombre_completo, role')
+      .eq('id', authData.user.id)
+      .maybeSingle();
+
+    if (userData) {
+      if (userData.nombre_completo) {
+        nombreCompleto = userData.nombre_completo;
+      }
+      if (userData.role) {
+        userRole = userData.role as UserRole;
+      }
+    }
+  } catch (err) {
+    console.warn('Error al consultar tabla users:', err);
   }
 
   const profile: UserProfile = {
     uid: authData.user.id,
-    email: authData.user.email || emailToAuth,
-    displayName: profileData?.display_name || authData.user.user_metadata?.display_name || authData.user.email || 'Usuario',
-    role: (profileData?.role as UserRole) || 'tecnico',
-    status: profileData?.status || 'active',
-    cargo: profileData?.cargo || 'Técnico de Seguimiento Pedagógico',
+    email: authData.user.email || email,
+    displayName: nombreCompleto,
+    role: userRole,
+    status: 'active',
     lastLogin: new Date().toISOString(),
   };
-
-  if (profile.status === 'inactive') {
-    await supabase.auth.signOut();
-    throw new Error('Su cuenta ha sido desactivada.');
-  }
-
-  // Actualizar último login en tabla usuarios
-  if (profileData?.id) {
-    await supabase
-      .from('usuarios')
-      .update({ last_login: new Date().toISOString() })
-      .eq('id', profileData.id);
-  }
 
   saveLoggedInUser(profile);
   return profile;
