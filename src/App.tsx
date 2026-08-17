@@ -51,7 +51,6 @@ export default function App() {
     }
   }, [currentUser]);
 
-  const isViewer = activeRole === 'viewer';
   const handleToggleActiveRole = () => {
     if (currentUser?.role !== 'admin') return;
     setActiveRole(prev => (prev === 'admin' ? 'tecnico' : 'admin'));
@@ -588,9 +587,7 @@ export default function App() {
   };
 
   const handleGenerar = () => {
-    if (isViewer) return;
     if (modo === 'automatico') {
-      
       triggerCalculationAuto();
     } else {
       triggerCalculationManual();
@@ -820,7 +817,8 @@ export default function App() {
         onOpenUserManagement={() => setIsUserMgmtOpen(true)}
         onSignOut={handleSignOut}
         activeRole={activeRole}
-        />
+        onToggleActiveRole={handleToggleActiveRole}
+      />
 
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -960,7 +958,6 @@ export default function App() {
               errorMessage={errorMessage}
               warnings={warnings}
               currentUser={currentUser}
-              isViewer={isViewer}
             />
           )}
 
@@ -985,7 +982,6 @@ export default function App() {
               onGuardarSeguimiento={() => programacionResult && saveToHistory(programacionResult)}
               onGenerarPDF={handleGeneratePDF}
               onCompartir={() => setIsShareOpen(true)}
-              isViewer={isViewer}
             />
           )}
 
