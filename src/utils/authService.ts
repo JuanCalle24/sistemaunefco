@@ -17,8 +17,8 @@ export const authenticateUser = async (
     throw new Error('Usuario o contraseña incorrectos');
   }
 
-  // 1. Armar correo sintético agregando @unefco.local
-  const email = cleanUser.includes('@') ? cleanUser : `${cleanUser}@unefco.local`;
+  // 1. Armar correo sintético agregando @unefco.edu.bo
+  const email = cleanUser.includes('@') ? cleanUser : `${cleanUser}@unefco.edu.bo`;
 
   // 2. Llamar a supabase.auth.signInWithPassword({ email, password })
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
