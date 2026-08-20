@@ -51,6 +51,8 @@ export default function App() {
     }
   }, [currentUser]);
 
+  const isViewer = activeRole === 'viewer';
+
   const handleToggleActiveRole = () => {
     if (currentUser?.role !== 'admin') return;
     setActiveRole(prev => (prev === 'admin' ? 'tecnico' : 'admin'));
@@ -587,6 +589,7 @@ export default function App() {
   };
 
   const handleGenerar = () => {
+    if (isViewer) return;
     if (modo === 'automatico') {
       triggerCalculationAuto();
     } else {
