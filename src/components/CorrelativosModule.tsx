@@ -66,7 +66,7 @@ const STEP_ORDER = ['cp', 'inf', 'ini'] as const;
 
 interface CorrelativosModuleProps {
   currentUser: UserProfile | null;
-  activeRole: 'admin' | 'tecnico';
+  activeRole: 'admin' | 'tecnico' | 'viewer';
   tecnicoName: string;
   schedulesHistory?: ProgramacionResultado[];
   onPreloadFacilitadorForSchedule?: (nombre: string, ci: string, ciComp: string) => void;
@@ -79,6 +79,8 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
   schedulesHistory = [],
   onPreloadFacilitadorForSchedule
 }) => {
+  const isViewer = activeRole === 'viewer';
+
   // Real-time Firestore State
   const [records, setRecords] = useState<CorrelativoRecord[]>([]);
   const [counters, setCounters] = useState<CorrelativoCounters>(DEFAULT_COUNTERS);
@@ -210,6 +212,9 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Validate Flow before Generating
   const validateFlow = (): string | null => {
+    if (isViewer) {
+      return 'Su rol de Visualización no permite generar correlativos.';
+    }
     if (!facilitador.trim()) {
       return 'El nombre completo del facilitador es obligatorio.';
     }
@@ -251,6 +256,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Handle Generate
   const handleGenerate = async () => {
+    if (isViewer) return;
     setValidationError(null);
     const err = validateFlow();
     if (err) {
@@ -322,6 +328,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
 
   // Handle Anulacion Confirmation
   const handleConfirmAnulacion = async () => {
+    if (isViewer) return;
     if (!anularModalRecord) return;
     if (!anularMotivo.trim()) {
       alert('Debe especificar un motivo de anulación obligatorio.');
@@ -751,7 +758,7 @@ export const CorrelativosModule: React.FC<CorrelativosModuleProps> = ({
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isGenerating}
+                disabled={isGenerating || isViewer}
                 className="w-full h-[46px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-lg uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow-md disabled:opacity-50"
               >
                 {isGenerating ? (
