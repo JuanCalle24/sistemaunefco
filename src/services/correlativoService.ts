@@ -207,7 +207,7 @@ export function subscribeToCorrelativos(
     fetchSupabaseCorrelativos();
 
     const channel = supabase
-      .channel('public:correlativos')
+      .channel(`public:correlativos:${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativos' }, () => {
         fetchSupabaseCorrelativos();
       })
@@ -266,7 +266,7 @@ export function subscribeToCounters(
     fetchCounters();
 
     const channel = supabase
-      .channel('public:correlativo_contadores')
+      .channel(`public:correlativo_contadores:${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_contadores' }, () => {
         fetchCounters();
       })
